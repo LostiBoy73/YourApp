@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unsere Koch-App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+</head>
+<body>
+    <main class="container">
+        <nav>
+            <ul>
+                <li><strong>👨‍🍳 Berufsschul-Koch-App</strong></li>
+            </ul>
+            <ul>
+                <li><a href="/neu" role="button">Rezept hinzufügen</a></li>
+            </ul>
+        </nav>
+
+        <h2>Meine Rezepte</h2>
+        
+        <div class="grid">
+            {% for rezept in rezepte %}
+            <article>
+                <header><h3>{{ rezept['titel'] }}</h3></header>
+                <strong>Kategorie:</strong> {{ rezept['kategorie'].capitalize() }}<br>
+                <strong>Zutaten:</strong>
+                <p style="white-space: pre-line;">{{ rezept['zutaten'] }}</p>
+                <strong>Zubereitung:</strong>
+                <p style="white-space: pre-line;">{{ rezept['anleitung'] }}</p>
+                <footer>⏱ {{ rezept['dauer'] }} Min.</footer>
+            </article>
+            {% else %}
+                <p>Noch keine Rezepte eingetragen. Klicke oben auf den Button!</p>
+            {% endfor %}
+        </div>
+    </main>
+</body>
+</html>

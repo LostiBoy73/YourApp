@@ -13,38 +13,38 @@
                 <li><strong>👨‍🍳 Berufsschul-Koch-App</strong></li>
             </ul>
             <ul>
-                <li><a href="index.html" class="outline">🔙 Zurück</a></li>
+                <li><a href="/" class="outline">🔙 Zurück</a></li>
             </ul>
         </nav>
 
         <h2>Neues Rezept eintragen</h2>
         
-        <form>
+        <form action="/speichern" method="POST">
             <label for="titel">Rezeptname</label>
             <input type="text" id="titel" name="titel" placeholder="z.B. Käsespätzle" required>
 
             <div class="grid">
                 <div>
                     <label for="dauer">Dauer (in Min.)</label>
-                    <input type="number" id="dauer" name="dauer" placeholder="z.B. 30">
+                    <input type="number" id="dauer" name="dauer" placeholder="z.B. 30" required>
                 </div>
                 <div>
                     <label for="kategorie">Kategorie</label>
                     <select id="kategorie" name="kategorie">
                         <option value="vorspeise">Vorspeise</option>
-                        <option value="hauptgericht">Hauptgericht</option>
+                        <option value="hauptgericht" selected>Hauptgericht</option>
                         <option value="dessert">Dessert</option>
                     </select>
                 </div>
             </div>
 
             <label for="zutaten">Zutaten</label>
-            <textarea id="zutaten" name="zutaten" placeholder="100g Mehl..." rows="3"></textarea>
+            <textarea id="zutaten" name="zutaten" placeholder="100g Mehl..." rows="3" required></textarea>
 
             <label for="anleitung">Zubereitung</label>
-            <textarea id="anleitung" name="anleitung" placeholder="Zuerst das Mehl mit den Eiern..." rows="5"></textarea>
+            <textarea id="anleitung" name="anleitung" placeholder="Zuerst das Mehl..." rows="5" required></textarea>
 
-            <button type="button" onclick="alert('Später wird das ans Backend gesendet!')">Rezept speichern</button>
+            <button type="submit">Rezept speichern</button>
         </form>
     </main>
 </body>
