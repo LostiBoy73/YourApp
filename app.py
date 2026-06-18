@@ -1,15 +1,19 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
 
 app = Flask(__name__)
 
-# Funktion zur Verbindung mit der SQLite-Datenbank
+# --- NEU: Absoluter Pfad zur Datenbank ---
+# Das garantiert, dass der Server die Datei immer im richtigen Projektordner sucht
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, 'rezepte.db')
+
 def get_db_connection():
-    conn = sqlite3.connect('rezepte.db')
-    conn.row_factory = sqlite3.Row # Aktiviert den Zugriff auf Spalten über Namen statt Nummern
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row 
     return conn
 
-# Datenbank und Tabelle beim Start automatisch anlegen
 def init_db():
     conn = get_db_connection()
     conn.execute('''
