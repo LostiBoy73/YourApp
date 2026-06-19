@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rezept bearbeiten</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+</head>
+<body>
+    <main class="container">
+        <nav>
+            <ul>
+                <li><strong>👨‍🍳 Berufsschul-Koch-App</strong></li>
+            </ul>
+            <ul>
+                <li><a href="/" class="outline">🔙 Abbrechen</a></li>
+            </ul>
+        </nav>
+
+        <h2>Rezept bearbeiten</h2>
+        
+        <form action="/aktualisieren/{{ rezept['id'] }}" method="POST">
+            <label for="titel">Rezeptname</label>
+            <input type="text" id="titel" name="titel" value="{{ rezept['titel'] }}" required>
+
+            <div class="grid">
+                <div>
+                    <label for="dauer">Dauer (in Min.)</label>
+                    <input type="number" id="dauer" name="dauer" value="{{ rezept['dauer'] }}" required>
+                </div>
+                <div>
+                    <label for="kategorie">Kategorie</label>
+                    <select id="kategorie" name="kategorie">
+                        <option value="vorspeise" {% if rezept['kategorie'] == 'vorspeise' %}selected{% endif %}>Vorspeise</option>
+                        <option value="hauptgericht" {% if rezept['kategorie'] == 'hauptgericht' %}selected{% endif %}>Hauptgericht</option>
+                        <option value="dessert" {% if rezept['kategorie'] == 'dessert' %}selected{% endif %}>Dessert</option>
+                    </select>
+                </div>
+            </div>
+
+            <label for="zutaten">Zutaten</label>
+            <textarea id="zutaten" name="zutaten" rows="3" required>{{ rezept['zutaten'] }}</textarea>
+
+            <label for="anleitung">Zubereitung</label>
+            <textarea id="anleitung" name="anleitung" rows="5" required>{{ rezept['anleitung'] }}</textarea>
+
+            <button type="submit">Änderungen speichern</button>
+        </form>
+    </main>
+</body>
+</html>

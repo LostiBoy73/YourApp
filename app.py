@@ -4,7 +4,7 @@ import sqlite3
 
 app = Flask(__name__)
 
-# --- NEU: Absoluter Pfad zur Datenbank ---
+# --- Absoluter Pfad zur Datenbank ---
 # Das garantiert, dass der Server die Datei immer im richtigen Projektordner sucht
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'rezepte.db')
@@ -66,6 +66,38 @@ def speichern():
     conn.close()
 
     # Nach dem Speichern zurück zur Startseite springen
+    return redirect(url_for('index'))
+
+# ROUTE 4: Seite zum Bearbeiten eines bestimmten Rezepts anzeigen
+@app.route('/bearbeiten/<int:id>')
+def bearbeiten(id):
+    conn = get_db_connection()
+    # Hole genau das eine Rezept, das die angeklickte ID hat
+    rezept = conn.execute('SELECT * FROM rezepte WHERE id = ?', (id,)).fetchone()
+    conn.close()
+    # Wir übergeben das gefundene Rezept an ein neues HTML-Template
+    return render_template('bearbeiten.html', rezept=rezept)
+
+# ROUTE 5: Die korrigierten Daten in der Datenbank überschreiben
+@app.route('/aktualisieren/<int:id>', methods=['POST'])
+def aktualisieren(id):
+    titel = request.form['titel']
+    dauer = request.form['dauer']
+    kategorie = request.form['kategorie']
+    zutaten = request.form['zutaten']
+    anleitung = request.form['anleitung']
+
+    conn = get_db_connection()
+    # SQL UPDATE überschreibt die alten Daten in der Zeile der jeweiligen ID
+    conn.execute('''
+        UPDATE rezepte
+        SET titel = ?, dauer = ?, kategorie = ?, zutaten = ?, anleitung = ?
+        WHERE id = ?
+    ''', (titel, dauer, kategorie, zutaten, anleitung, id))
+    conn.commit()
+    conn.close()
+
+    # Nach dem Aktualisieren wieder zurück zur Startseite
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
