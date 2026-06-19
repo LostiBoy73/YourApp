@@ -82,7 +82,42 @@
                 container.appendChild(neueZeile);
             }
             </script>
-            <label for="anleitung">Zubereitung</label>
+            <label>Zubereitung (Schritt für Schritt)</label>
+            <div id="schritte-container">
+                {% if rezept['anleitung'] %}
+                    {% if '|||' in rezept['anleitung'] %}
+                        {% for schritt in rezept['anleitung'].split('|||') %}
+                            {% if schritt.strip() %}
+                            <div class="schritt-zeile" style="margin-bottom: 0.5rem;">
+                                <textarea name="anleitung_schritt[]" rows="2" required style="margin-bottom:0;">{{ schritt }}</textarea>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="schritt-zeile" style="margin-bottom: 0.5rem;">
+                            <textarea name="anleitung_schritt[]" rows="5" required style="margin-bottom:0;">{{ rezept['anleitung'] }}</textarea>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="schritt-zeile" style="margin-bottom: 0.5rem;">
+                        <textarea name="anleitung_schritt[]" placeholder="Schritt 1..." rows="2" required style="margin-bottom:0;"></textarea>
+                    </div>
+                {% endif %}
+            </div>
+
+            <button type="button" class="secondary outline" onclick="addSchrittZeile()">➕ Schritt hinzufügen</button>
+
+            <script>
+            function addSchrittZeile() {
+                const container = document.getElementById('schritte-container');
+                const neueZeile = container.firstElementChild.cloneNode(true);
+                const textareas = neueZeile.getElementsByTagName('textarea');
+                for (let textarea of textareas) {
+                    textarea.value = '';
+                }
+                container.appendChild(neueZeile);
+            }
+            </script>
             <textarea id="anleitung" name="anleitung" rows="5" required>{{ rezept['anleitung'] }}</textarea>
 
             <button type="submit">Änderungen speichern</button>

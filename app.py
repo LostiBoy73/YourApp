@@ -52,7 +52,13 @@ def speichern():
     titel = request.form['titel']
     dauer = request.form['dauer']
     kategorie = request.form['kategorie']
-    anleitung = request.form['anleitung']
+
+    # Die Liste der Schritte abfangen
+    schritte = request.form.getlist('anleitung_schritt[]')
+    
+    # Leere Schritte rausfiltern und mit "|||" als Trennzeichen zusammenkleben
+    schritte_liste = [s.strip() for s in schritte if s.strip()]
+    anleitung_text = "|||".join(schritte_liste)
 
     # NEU: Die Listen der dynamischen Felder abfangen
     mengen = request.form.getlist('zutaten_menge[]')
@@ -74,7 +80,7 @@ def speichern():
 
     conn = get_db_connection()
     conn.execute('''
-        INSERT INTO rezepte (titel, dauer, kategorie, zutaten, anleitung)
+        INSERT INTO rezepte (titel, dauer, kategorie, zutaten, anleitung_text)
         VALUES (?, ?, ?, ?, ?)
     ''', (titel, dauer, kategorie, zutaten_text, anleitung))
     conn.commit()
@@ -98,7 +104,13 @@ def aktualisieren(id):
     titel = request.form['titel']
     dauer = request.form['dauer']
     kategorie = request.form['kategorie']
-    anleitung = request.form['anleitung']
+
+    # Die Liste der Schritte abfangen
+    schritte = request.form.getlist('anleitung_schritt[]')
+    
+    # Leere Schritte rausfiltern und mit "|||" als Trennzeichen zusammenkleben
+    schritte_liste = [s.strip() for s in schritte if s.strip()]
+    anleitung_text = "|||".join(schritte_liste)
 
     # NEU: Auch beim Bearbeiten die Listen der Zutaten abfangen
     mengen = request.form.getlist('zutaten_menge[]')
@@ -118,7 +130,7 @@ def aktualisieren(id):
     conn = get_db_connection()
     conn.execute('''
         UPDATE rezepte
-        SET titel = ?, dauer = ?, kategorie = ?, zutaten = ?, anleitung = ?
+        SET titel = ?, dauer = ?, kategorie = ?, zutaten = ?, anleitung_text = ?
         WHERE id = ?
     ''', (titel, dauer, kategorie, zutaten_text, anleitung, id))
     conn.commit()

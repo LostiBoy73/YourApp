@@ -35,8 +35,18 @@
                         {% endif %}
                     {% endfor %}
                 </ul>
-                <strong>Zubereitung:</strong>
-                <p style="white-space: pre-line;">{{ rezept['anleitung'] }}</p>
+               <strong>Zubereitung:</strong>
+                <ol style="margin-top: 0.5rem; margin-bottom: 1.5rem;">
+                    {% if '|||' in rezept['anleitung'] %}
+                        {% for schritt in rezept['anleitung'].split('|||') %}
+                            {% if schritt.strip() %}
+                                <li style="margin-bottom: 0.5rem;">{{ schritt }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p style="white-space: pre-line;">{{ rezept['anleitung'] }}</p>
+                    {% endif %}
+                </ol>
                 <footer>
                      <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span>⏱ {{ rezept['dauer'] }} Min.</span>

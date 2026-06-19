@@ -65,7 +65,27 @@
                 container.appendChild(neueZeile);
             }
             </script>
-            <label for="anleitung">Zubereitung</label>
+            <label>Zubereitung (Schritt für Schritt)</label>
+            <div id="schritte-container">
+                <div class="schritt-zeile" style="margin-bottom: 0.5rem;">
+                    <textarea name="anleitung_schritt[]" placeholder="Schritt 1: Zwiebeln fein würfeln..." rows="2" required style="margin-bottom:0;"></textarea>
+                </div>
+            </div>
+
+            <button type="button" class="secondary outline" onclick="addSchrittZeile()">➕ Schritt hinzufügen</button>
+
+            <script>
+            // Das ist die neue Funktion für die Schritte
+            function addSchrittZeile() {
+                const container = document.getElementById('schritte-container');
+                const neueZeile = container.firstElementChild.cloneNode(true);
+                const textareas = neueZeile.getElementsByTagName('textarea');
+                for (let textarea of textareas) {
+                    textarea.value = '';
+                }
+                container.appendChild(neueZeile);
+            }
+            </script>
             <textarea id="anleitung" name="anleitung" placeholder="Zuerst das Mehl..." rows="5" required></textarea>
 
             <button type="submit">Rezept speichern</button>
