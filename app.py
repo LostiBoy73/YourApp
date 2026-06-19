@@ -49,23 +49,37 @@ def neues_rezept():
 # ROUTE 3: Formulardaten empfangen und in der DB speichern
 @app.route('/speichern', methods=['POST'])
 def speichern():
-    # Daten aus dem HTML-Formular auslesen
     titel = request.form['titel']
     dauer = request.form['dauer']
     kategorie = request.form['kategorie']
-    zutaten = request.form['zutaten']
     anleitung = request.form['anleitung']
 
-    # In die Datenbank einfügen
+    # NEU: Die Listen der dynamischen Felder abfangen
+    mengen = request.form.getlist('zutaten_menge[]')
+    einheiten = request.form.getlist('zutaten_einheit[]')
+    namen = request.form.getlist('zutaten_name[]')
+
+    # Wir bauen die Zutaten zu einem strukturierten Text zusammen.
+    # Beispiel: "250|g|Mehl" pro Zeile
+    zutaten_liste = []
+    for i in range(len(namen)):
+        if namen[i].strip(): # Nur speichern, wenn der Name nicht leer ist
+            menge = mengen[i] if mengen[i] else ""
+            einheit = einheiten[i] if einheiten[i] else ""
+            # Wir trennen Menge, Einheit und Name mit einem senkrechten Strich |
+            zutaten_liste.append(f"{menge}|{einheit}|{namen[i]}")
+    
+    # Alle Zutaten-Zeilen werden mit einem echten Zeilenumbruch (\n) verbunden
+    zutaten_text = "\n".join(zutaten_liste)
+
     conn = get_db_connection()
     conn.execute('''
         INSERT INTO rezepte (titel, dauer, kategorie, zutaten, anleitung)
         VALUES (?, ?, ?, ?, ?)
-    ''', (titel, dauer, kategorie, zutaten, anleitung))
+    ''', (titel, dauer, kategorie, zutaten_text, anleitung))
     conn.commit()
     conn.close()
 
-    # Nach dem Speichern zurück zur Startseite springen
     return redirect(url_for('index'))
 
 # ROUTE 4: Seite zum Bearbeiten eines bestimmten Rezepts anzeigen
@@ -84,20 +98,32 @@ def aktualisieren(id):
     titel = request.form['titel']
     dauer = request.form['dauer']
     kategorie = request.form['kategorie']
-    zutaten = request.form['zutaten']
     anleitung = request.form['anleitung']
 
+    # NEU: Auch beim Bearbeiten die Listen der Zutaten abfangen
+    mengen = request.form.getlist('zutaten_menge[]')
+    einheiten = request.form.getlist('zutaten_einheit[]')
+    namen = request.form.getlist('zutaten_name[]')
+
+    # Zutaten wieder zu einem Text zusammenbauen
+    zutaten_liste = []
+    for i in range(len(namen)):
+        if namen[i].strip():
+            menge = mengen[i] if mengen[i] else ""
+            einheit = einheiten[i] if einheiten[i] else ""
+            zutaten_liste.append(f"{menge}|{einheit}|{namen[i]}")
+    
+    zutaten_text = "\n".join(zutaten_liste)
+
     conn = get_db_connection()
-    # SQL UPDATE überschreibt die alten Daten in der Zeile der jeweiligen ID
     conn.execute('''
         UPDATE rezepte
         SET titel = ?, dauer = ?, kategorie = ?, zutaten = ?, anleitung = ?
         WHERE id = ?
-    ''', (titel, dauer, kategorie, zutaten, anleitung, id))
+    ''', (titel, dauer, kategorie, zutaten_text, anleitung, id))
     conn.commit()
     conn.close()
 
-    # Nach dem Aktualisieren wieder zurück zur Startseite
     return redirect(url_for('index'))
 
 if __name__ == '__main__':

@@ -25,7 +25,16 @@
                 <header><h3>{{ rezept['titel'] }}</h3></header>
                 <strong>Kategorie:</strong> {{ rezept['kategorie'].capitalize() }}<br>
                 <strong>Zutaten:</strong>
-                <p style="white-space: pre-line;">{{ rezept['zutaten'] }}</p>
+                <ul>
+                    {% for zeile in rezept['zutaten'].split('\n') %}
+                        {% set zutat_daten = zeile.split('|') %}
+                        {% if zutat_daten|length == 3 %}
+                            <li>
+                                <strong>{{ zutat_daten[0] }} {{ zutat_daten[1] }}</strong> {{ zutat_daten[2] }}
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
                 <strong>Zubereitung:</strong>
                 <p style="white-space: pre-line;">{{ rezept['anleitung'] }}</p>
                 <footer>

@@ -38,9 +38,33 @@
                 </div>
             </div>
 
-            <label for="zutaten">Zutaten</label>
-            <textarea id="zutaten" name="zutaten" placeholder="100g Mehl..." rows="3" required></textarea>
+            <label>Zutaten</label>
+            <div id="zutaten-container">
+                <div class="grid zutaten-zeile" style="margin-bottom: 0.5rem;">
+                    <input type="number" name="zutaten_menge[]" placeholder="Menge (z.B. 250)" style="margin-bottom:0;">
+                    <input type="text" name="zutaten_einheit[]" placeholder="Einheit (z.B. g, ml)" style="margin-bottom:0;">
+                    <input type="text" name="zutaten_name[]" placeholder="Zutat (z.B. Mehl)" required style="margin-bottom:0;">
+                </div>
+            </div>
 
+            <button type="button" class="secondary outline" onclick="addZutatZeile()">➕ Zutat hinzufügen</button>
+
+            <script>
+            function addZutatZeile() {
+                const container = document.getElementById('zutaten-container');
+                // Wir erstellen eine Kopie der ersten Zutaten-Zeile
+                const neueZeile = container.firstElementChild.cloneNode(true);
+                
+                // Wir leeren die Eingabefelder in der neuen Zeile
+                const inputs = neueZeile.getElementsByTagName('input');
+                for (let input of inputs) {
+                    input.value = '';
+                }
+                
+                // Die neue Zeile unten anhängen
+                container.appendChild(neueZeile);
+            }
+            </script>
             <label for="anleitung">Zubereitung</label>
             <textarea id="anleitung" name="anleitung" placeholder="Zuerst das Mehl..." rows="5" required></textarea>
 

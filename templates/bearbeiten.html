@@ -38,9 +38,50 @@
                 </div>
             </div>
 
-            <label for="zutaten">Zutaten</label>
-            <textarea id="zutaten" name="zutaten" rows="3" required>{{ rezept['zutaten'] }}</textarea>
+            <label>Zutaten</label>
+            <div id="zutaten-container">
+                {% if rezept['zutaten'] %}
+                    {% for zeile in rezept['zutaten'].split('\n') %}
+                        {% if zeile.strip() %}
+                            {% set zutat_daten = zeile.split('|') %}
+                            <div class="grid zutaten-zeile" style="margin-bottom: 0.5rem;">
+                                
+                                {% if zutat_daten|length == 3 %}
+                                    <input type="number" name="zutaten_menge[]" value="{{ zutat_daten[0] }}" placeholder="Menge" style="margin-bottom:0;">
+                                    <input type="text" name="zutaten_einheit[]" value="{{ zutat_daten[1] }}" placeholder="Einheit" style="margin-bottom:0;">
+                                    <input type="text" name="zutaten_name[]" value="{{ zutat_daten[2] }}" placeholder="Zutat" required style="margin-bottom:0;">
+                                
+                                {% else %}
+                                    <input type="number" name="zutaten_menge[]" placeholder="Menge" style="margin-bottom:0;">
+                                    <input type="text" name="zutaten_einheit[]" placeholder="Einheit" style="margin-bottom:0;">
+                                    <input type="text" name="zutaten_name[]" value="{{ zeile }}" placeholder="Zutat" required style="margin-bottom:0;">
+                                {% endif %}
+                                
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="grid zutaten-zeile" style="margin-bottom: 0.5rem;">
+                        <input type="number" name="zutaten_menge[]" placeholder="Menge" style="margin-bottom:0;">
+                        <input type="text" name="zutaten_einheit[]" placeholder="Einheit" style="margin-bottom:0;">
+                        <input type="text" name="zutaten_name[]" placeholder="Zutat" required style="margin-bottom:0;">
+                    </div>
+                {% endif %}
+            </div>
 
+            <button type="button" class="secondary outline" onclick="addZutatZeile()">➕ Zutat hinzufügen</button>
+
+            <script>
+            function addZutatZeile() {
+                const container = document.getElementById('zutaten-container');
+                const neueZeile = container.firstElementChild.cloneNode(true);
+                const inputs = neueZeile.getElementsByTagName('input');
+                for (let input of inputs) {
+                    input.value = '';
+                }
+                container.appendChild(neueZeile);
+            }
+            </script>
             <label for="anleitung">Zubereitung</label>
             <textarea id="anleitung" name="anleitung" rows="5" required>{{ rezept['anleitung'] }}</textarea>
 
