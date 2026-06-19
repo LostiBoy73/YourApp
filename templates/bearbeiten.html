@@ -50,11 +50,14 @@
                                     <input type="number" name="zutaten_menge[]" value="{{ zutat_daten[0] }}" placeholder="Menge" style="margin-bottom:0;">
                                     <input type="text" name="zutaten_einheit[]" value="{{ zutat_daten[1] }}" placeholder="Einheit" style="margin-bottom:0;">
                                     <input type="text" name="zutaten_name[]" value="{{ zutat_daten[2] }}" placeholder="Zutat" required style="margin-bottom:0;">
-                                
+                                    <a href="#" onclick="removeZeile(this); return false;" style="text-align: center; font-size: 1.5rem; text-decoration: none;" title="Zeile entfernen">🗑️</a>
+
                                 {% else %}
                                     <input type="number" name="zutaten_menge[]" placeholder="Menge" style="margin-bottom:0;">
                                     <input type="text" name="zutaten_einheit[]" placeholder="Einheit" style="margin-bottom:0;">
                                     <input type="text" name="zutaten_name[]" value="{{ zeile }}" placeholder="Zutat" required style="margin-bottom:0;">
+                                    <a href="#" onclick="removeZeile(this); return false;" style="text-align: center; font-size: 1.5rem; text-decoration: none;" title="Zeile entfernen">🗑️</a>
+
                                 {% endif %}
                                 
                             </div>
@@ -65,6 +68,7 @@
                         <input type="number" name="zutaten_menge[]" placeholder="Menge" style="margin-bottom:0;">
                         <input type="text" name="zutaten_einheit[]" placeholder="Einheit" style="margin-bottom:0;">
                         <input type="text" name="zutaten_name[]" placeholder="Zutat" required style="margin-bottom:0;">
+                        <a href="#" onclick="removeZeile(this); return false;" style="text-align: center; font-size: 1.5rem; text-decoration: none;" title="Zeile entfernen">🗑️</a>
                     </div>
                 {% endif %}
             </div>
@@ -88,19 +92,22 @@
                     {% if '|||' in rezept['anleitung'] %}
                         {% for schritt in rezept['anleitung'].split('|||') %}
                             {% if schritt.strip() %}
-                            <div class="schritt-zeile" style="margin-bottom: 0.5rem;">
-                                <textarea name="anleitung_schritt[]" rows="2" required style="margin-bottom:0;">{{ schritt }}</textarea>
+                            <div class="schritt-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: center;">
+                                <textarea name="anleitung_schritt[]" rows="2" required style="margin-bottom:0; flex-grow: 1;">{{ schritt }}</textarea>
+                                <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none;" title="Schritt entfernen">🗑️</a>
                             </div>
                             {% endif %}
                         {% endfor %}
                     {% else %}
-                        <div class="schritt-zeile" style="margin-bottom: 0.5rem;">
-                            <textarea name="anleitung_schritt[]" rows="5" required style="margin-bottom:0;">{{ rezept['anleitung'] }}</textarea>
+                        <div class="schritt-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: center;">
+                            <textarea name="anleitung_schritt[]" rows="2" required style="margin-bottom:0; flex-grow: 1;">{{ schritt }}</textarea>
+                            <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none;" title="Schritt entfernen">🗑️</a>
                         </div>
                     {% endif %}
                 {% else %}
-                    <div class="schritt-zeile" style="margin-bottom: 0.5rem;">
-                        <textarea name="anleitung_schritt[]" placeholder="Schritt 1..." rows="2" required style="margin-bottom:0;"></textarea>
+                    <div class="schritt-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: center;">
+                        <textarea name="anleitung_schritt[]" rows="2" required style="margin-bottom:0; flex-grow: 1;">{{ schritt }}</textarea>
+                        <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none;" title="Schritt entfernen">🗑️</a>
                     </div>
                 {% endif %}
             </div>
@@ -120,8 +127,46 @@
             </script>
             <textarea id="anleitung" name="anleitung" rows="5" required>{{ rezept['anleitung'] }}</textarea>
 
-            <button type="submit">Änderungen speichern</button>
+           <button type="submit">💾 Änderungen speichern</button>
+        </form> 
+        <hr style="margin-top: 3rem; margin-bottom: 2rem;">
+        
+        
+        <form action="/loeschen/{{ rezept['id'] }}" method="POST" onsubmit="return confirm('Möchtest du dieses Rezept wirklich unwiderruflich löschen?');">
+            <button type="submit" class="secondary outline" style="color: #d9534f; border-color: #d9534f;">⚠️ Gesamtes Rezept löschen</button>
         </form>
+
     </main>
+
+    <script>
+    function addZutatZeile() {
+        const container = document.getElementById('zutaten-container');
+        const neueZeile = container.firstElementChild.cloneNode(true);
+        const inputs = neueZeile.getElementsByTagName('input');
+        for (let input of inputs) { input.value = ''; }
+        container.appendChild(neueZeile);
+    }
+
+    function addSchrittZeile() {
+        const container = document.getElementById('schritte-container');
+        const neueZeile = container.firstElementChild.cloneNode(true);
+        const textareas = neueZeile.getElementsByTagName('textarea');
+        for (let textarea of textareas) { textarea.value = ''; }
+        container.appendChild(neueZeile);
+    }
+
+    // Die Funktion für die kleinen Mülleimer neben den Feldern
+    function removeZeile(element) {
+        const zeile = element.parentElement;
+        const container = zeile.parentElement;
+        
+        if (container.children.length > 1) {
+            zeile.remove();
+        } else {
+            const inputs = zeile.querySelectorAll('input, textarea');
+            inputs.forEach(input => input.value = '');
+        }
+    }
+    </script>
 </body>
 </html>

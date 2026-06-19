@@ -40,13 +40,13 @@
 
             <label>Zutaten</label>
             <div id="zutaten-container">
-                <div class="grid zutaten-zeile" style="margin-bottom: 0.5rem;">
-                    <input type="number" name="zutaten_menge[]" placeholder="Menge (z.B. 250)" style="margin-bottom:0;">
-                    <input type="text" name="zutaten_einheit[]" placeholder="Einheit (z.B. g, ml)" style="margin-bottom:0;">
-                    <input type="text" name="zutaten_name[]" placeholder="Zutat (z.B. Mehl)" required style="margin-bottom:0;">
+                <div class="grid zutaten-zeile" style="margin-bottom: 0.5rem; align-items: center;">
+                    <input type="number" name="zutaten_menge[]" placeholder="Menge" style="margin-bottom:0;">
+                    <input type="text" name="zutaten_einheit[]" placeholder="Einheit" style="margin-bottom:0;">
+                    <input type="text" name="zutaten_name[]" placeholder="Zutat" required style="margin-bottom:0;">
+                    <a href="#" onclick="removeZeile(this); return false;" style="text-align: center; font-size: 1.5rem; text-decoration: none;" title="Zeile entfernen">🗑️</a>
                 </div>
             </div>
-
             <button type="button" class="secondary outline" onclick="addZutatZeile()">➕ Zutat hinzufügen</button>
 
             <script>
@@ -67,13 +67,13 @@
             </script>
             <label>Zubereitung (Schritt für Schritt)</label>
             <div id="schritte-container">
-                <div class="schritt-zeile" style="margin-bottom: 0.5rem;">
-                    <textarea name="anleitung_schritt[]" placeholder="Schritt 1: Zwiebeln fein würfeln..." rows="2" required style="margin-bottom:0;"></textarea>
+                <div class="schritt-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: center;">
+                    <textarea name="anleitung_schritt[]" placeholder="Schritt 1: Zwiebeln fein würfeln..." rows="2" required style="margin-bottom:0; flex-grow: 1;"></textarea>
+                    <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none;" title="Schritt entfernen">🗑️</a>
                 </div>
             </div>
-
             <button type="button" class="secondary outline" onclick="addSchrittZeile()">➕ Schritt hinzufügen</button>
-
+                    
             <script>
             // Das ist die neue Funktion für die Schritte
             function addSchrittZeile() {
@@ -84,6 +84,19 @@
                     textarea.value = '';
                 }
                 container.appendChild(neueZeile);
+            }
+            function removeZeile(element) {
+                const zeile = element.parentElement;
+                const container = zeile.parentElement;
+                
+                // Wichtig: Die allerletzte Zeile darf nicht gelöscht werden, sonst fehlt die Vorlage zum Kopieren für neue Zeilen!
+                if (container.children.length > 1) {
+                    zeile.remove();
+                } else {
+                    // Ist es die letzte Zeile, leeren wir stattdessen einfach nur die Texteingaben
+                    const inputs = zeile.querySelectorAll('input, textarea');
+                    inputs.forEach(input => input.value = '');
+                }
             }
             </script>
             <textarea id="anleitung" name="anleitung" placeholder="Zuerst das Mehl..." rows="5" required></textarea>

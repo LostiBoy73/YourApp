@@ -138,6 +138,18 @@ def aktualisieren(id):
 
     return redirect(url_for('index'))
 
+# ROUTE 6: Ein komplettes Rezept löschen
+@app.route('/loeschen/<int:id>', methods=['POST'])
+def loeschen(id):
+    conn = get_db_connection()
+    # SQL DELETE löscht die gesamte Zeile mit dieser ID
+    conn.execute('DELETE FROM rezepte WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+
+    # Danach zurück zur Startseite
+    return redirect(url_for('index'))
+
 if __name__ == '__main__':
     # Starte den Server im Debug-Modus (er startet bei Änderungen automatisch neu)
     app.run(debug=True)
