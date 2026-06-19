@@ -31,20 +31,28 @@ def init_db():
 
 init_db()
 
-# ROUTE 1: Startseite - Zeigt alle Rezepte an
+# ROUTE 1: Das neue Hauptmenü (Dashboard)
 @app.route('/')
 def index():
-    conn = get_db_connection()
-    # Alle Rezepte aus der Datenbank abfragen
-    rezepte = conn.execute('SELECT * FROM rezepte').fetchall()
-    conn.close()
-    # Wir übergeben die Rezepte an das HTML-Template
-    return render_template('index.html', rezepte=rezepte)
+    return render_template('index.html')
 
-# ROUTE 2: Seite für das Formular anzeigen
+# NEUE ROUTE: Die alte Rezept-Übersicht ist jetzt hier
+@app.route('/rezepte')
+def rezepte():
+    conn = get_db_connection()
+    rezepte_db = conn.execute('SELECT * FROM rezepte').fetchall()
+    conn.close()
+    return render_template('rezepte.html', rezepte=rezepte_db)
+
+# ROUTE 2: Seite für das Formular anzeigen (mit dynamischem Zurück-Button)
 @app.route('/neu')
 def neues_rezept():
-    return render_template('neues_rezept.html')
+    # Wir lesen den 'von'-Parameter aus der URL aus. 
+    # Wenn jemand die Seite direkt aufruft (ohne Parameter), nehmen wir standardmäßig 'rezepte'
+    von_wo = request.args.get('von', 'rezepte')
+    
+    # Wir übergeben die Info an das HTML-Template
+    return render_template('neues_rezept.html', von_wo=von_wo)
 
 # ROUTE 3: Formulardaten empfangen und in der DB speichern
 @app.route('/speichern', methods=['POST'])
@@ -86,7 +94,7 @@ def speichern():
     conn.commit()
     conn.close()
 
-    return redirect(url_for('index'))
+    return redirect(url_for('rezepte'))
 
 # ROUTE 4: Seite zum Bearbeiten eines bestimmten Rezepts anzeigen
 @app.route('/bearbeiten/<int:id>')
@@ -136,7 +144,7 @@ def aktualisieren(id):
     conn.commit()
     conn.close()
 
-    return redirect(url_for('index'))
+    return redirect(url_for('rezepte'))
 
 # ROUTE 6: Ein komplettes Rezept löschen
 @app.route('/loeschen/<int:id>', methods=['POST'])
@@ -148,7 +156,7 @@ def loeschen(id):
     conn.close()
 
     # Danach zurück zur Startseite
-    return redirect(url_for('index'))
+    return redirect(url_for('rezepte'))
 
 if __name__ == '__main__':
     # Starte den Server im Debug-Modus (er startet bei Änderungen automatisch neu)

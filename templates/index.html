@@ -3,8 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unsere Koch-App</title>
+    <title>Koch-App Menü</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        /* Ein bisschen Extra-Styling für schöne, große Menü-Kacheln */
+        .menu-card { 
+            text-align: center; 
+            padding: 2rem 1rem; 
+            text-decoration: none; 
+            display: block; 
+            border-radius: 10px; 
+            background: var(--pico-card-background-color); 
+            border: 1px solid var(--pico-muted-border-color); 
+            color: var(--pico-color); 
+            transition: transform 0.2s, background-color 0.2s; 
+        }
+        .menu-card:hover { 
+            transform: scale(1.02); 
+            background: var(--pico-form-element-background-color); 
+        }
+        .menu-icon { 
+            font-size: 3rem; 
+            margin-bottom: 1rem; 
+            display: block; 
+        }
+    </style>
 </head>
 <body>
     <main class="container">
@@ -12,51 +35,34 @@
             <ul>
                 <li><strong>👨‍🍳 Berufsschul-Koch-App</strong></li>
             </ul>
-            <ul>
-                <li><a href="/neu" role="button">Rezept hinzufügen</a></li>
-            </ul>
         </nav>
 
-        <h2>Meine Rezepte</h2>
+        <h2 style="text-align: center; margin-bottom: 2rem; margin-top: 1rem;">Was möchtest du tun?</h2>
         
         <div class="grid">
-            {% for rezept in rezepte %}
-            <article>
-                <header><h3>{{ rezept['titel'] }}</h3></header>
-                <strong>Kategorie:</strong> {{ rezept['kategorie'].capitalize() }}<br>
-                <strong>Zutaten:</strong>
-                <ul>
-                    {% for zeile in rezept['zutaten'].split('\n') %}
-                        {% set zutat_daten = zeile.split('|') %}
-                        {% if zutat_daten|length == 3 %}
-                            <li>
-                                <strong>{{ zutat_daten[0] }} {{ zutat_daten[1] }}</strong> {{ zutat_daten[2] }}
-                            </li>
-                        {% endif %}
-                    {% endfor %}
-                </ul>
-               <strong>Zubereitung:</strong>
-                <ol style="margin-top: 0.5rem; margin-bottom: 1.5rem;">
-                    {% if '|||' in rezept['anleitung'] %}
-                        {% for schritt in rezept['anleitung'].split('|||') %}
-                            {% if schritt.strip() %}
-                                <li style="margin-bottom: 0.5rem;">{{ schritt }}</li>
-                            {% endif %}
-                        {% endfor %}
-                    {% else %}
-                        <p style="white-space: pre-line;">{{ rezept['anleitung'] }}</p>
-                    {% endif %}
-                </ol>
-                <footer>
-                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span>⏱ {{ rezept['dauer'] }} Min.</span>
-                        <a href="/bearbeiten/{{ rezept['id'] }}" class="outline" style="padding: 2px 10px; font-size: 0.8rem;">✏️ Bearbeiten</a>
-                     </div>
-                <footer>
-            </article>
-            {% else %}
-                <p>Noch keine Rezepte eingetragen. Klicke oben auf den Button!</p>
-            {% endfor %}
+            <a href="/rezepte" class="menu-card">
+                <span class="menu-icon">📖</span>
+                <h3>Meine Rezepte</h3>
+                <p>Alle Rezepte ansehen und bearbeiten</p>
+            </a>
+            <a href="/neu?von=menue" class="menu-card">
+                <span class="menu-icon">➕</span>
+                <h3>Neues Rezept</h3>
+                <p>Ein weiteres Rezept hinzufügen</p>
+            </a>
+        </div>
+
+        <div class="grid" style="margin-top: 1rem;">
+            <a href="#" class="menu-card" onclick="alert('Diese Funktion bauen wir später!'); return false;">
+                <span class="menu-icon">🛒</span>
+                <h3>Einkaufsliste</h3>
+                <p>Zutaten für den Einkauf sammeln</p>
+            </a>
+            <a href="#" class="menu-card" onclick="alert('Diese Funktion bauen wir später!'); return false;">
+                <span class="menu-icon">📅</span>
+                <h3>Wochenplan</h3>
+                <p>Essen für die Woche planen</p>
+            </a>
         </div>
     </main>
 </body>
