@@ -24,7 +24,19 @@
             {% for rezept in rezepte %}
             <article>
                 <header><h3>{{ rezept['titel'] }}</h3></header>
-                <strong>Kategorie:</strong> {{ rezept['kategorie'].capitalize() }}<br>
+                <div style="margin-bottom: 1rem;">
+                    {% if rezept['kategorie'] %}
+                        {% for kat in rezept['kategorie'].split(',') %}
+                            {% if kat.strip() %}
+                                <span style="display: inline-block; background: var(--pico-form-element-background-color); border: 1px solid var(--pico-muted-border-color); padding: 0.1rem 0.5rem; border-radius: 15px; font-size: 0.8rem; margin-right: 0.3rem; margin-bottom: 0.3rem;">
+                                    🏷️ {{ kat.strip().capitalize() }}
+                                </span>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <span style="font-size: 0.8rem; color: var(--pico-muted-color);">Keine Kategorien</span>
+                    {% endif %}
+                </div>
                 <strong>Zutaten:</strong>
                 <ul>
                     {% for zeile in rezept['zutaten'].split('\n') %}

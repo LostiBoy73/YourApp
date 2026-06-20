@@ -29,12 +29,25 @@
                     <input type="number" id="dauer" name="dauer" value="{{ rezept['dauer'] }}" required>
                 </div>
                 <div>
-                    <label for="kategorie">Kategorie</label>
-                    <select id="kategorie" name="kategorie">
-                        <option value="vorspeise" {% if rezept['kategorie'] == 'vorspeise' %}selected{% endif %}>Vorspeise</option>
-                        <option value="hauptgericht" {% if rezept['kategorie'] == 'hauptgericht' %}selected{% endif %}>Hauptgericht</option>
-                        <option value="dessert" {% if rezept['kategorie'] == 'dessert' %}selected{% endif %}>Dessert</option>
-                    </select>
+                    <label>Kategorien (Tags)</label>
+                    <div id="kategorie-container">
+                        {% if rezept['kategorie'] %}
+                            {% for kat in rezept['kategorie'].split(',') %}
+                                {% if kat.strip() %}
+                                <div class="kategorie-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: center;">
+                                    <input type="text" name="kategorie[]" value="{{ kat.strip() }}" required style="margin-bottom:0; flex-grow: 1;">
+                                    <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none;" title="Kategorie entfernen">🗑️</a>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <div class="kategorie-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: center;">
+                                <input type="text" name="kategorie[]" placeholder="z.B. Vegetarisch" required style="margin-bottom:0; flex-grow: 1;">
+                                <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none;" title="Kategorie entfernen">🗑️</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <button type="button" class="secondary outline" onclick="addKategorieZeile()" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; margin-top: 0.5rem;">➕ Kategorie hinzufügen</button>
                 </div>
             </div>
 
@@ -121,6 +134,28 @@
                 const textareas = neueZeile.getElementsByTagName('textarea');
                 for (let textarea of textareas) {
                     textarea.value = '';
+                }
+                container.appendChild(neueZeile);
+            }
+            function removeZeile(element) {
+                const zeile = element.parentElement;
+                const container = zeile.parentElement;
+                
+                // Wichtig: Die allerletzte Zeile darf nicht gelöscht werden, sonst fehlt die Vorlage zum Kopieren für neue Zeilen!
+                if (container.children.length > 1) {
+                    zeile.remove();
+                } else {
+                    // Ist es die letzte Zeile, leeren wir stattdessen einfach nur die Texteingaben
+                    const inputs = zeile.querySelectorAll('input, textarea');
+                    inputs.forEach(input => input.value = '');
+                }
+            }
+            function addKategorieZeile() {
+                const container = document.getElementById('kategorie-container');
+                const neueZeile = container.firstElementChild.cloneNode(true);
+                const inputs = neueZeile.getElementsByTagName('input');
+                for (let input of inputs) {
+                    input.value = '';
                 }
                 container.appendChild(neueZeile);
             }

@@ -33,12 +33,14 @@
                     <input type="number" id="dauer" name="dauer" placeholder="z.B. 30" required>
                 </div>
                 <div>
-                    <label for="kategorie">Kategorie</label>
-                    <select id="kategorie" name="kategorie">
-                        <option value="vorspeise">Vorspeise</option>
-                        <option value="hauptgericht" selected>Hauptgericht</option>
-                        <option value="dessert">Dessert</option>
-                    </select>
+                    <label>Kategorien (Tags)</label>
+                    <div id="kategorie-container">
+                        <div class="kategorie-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: center;">
+                            <input type="text" name="kategorie[]" placeholder="z.B. Vegetarisch" required style="margin-bottom:0; flex-grow: 1;">
+                            <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none;" title="Kategorie entfernen">🗑️</a>
+                        </div>
+                    </div>
+                    <button type="button" class="secondary outline" onclick="addKategorieZeile()" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; margin-top: 0.5rem;">➕ Kategorie hinzufügen</button>
                 </div>
             </div>
 
@@ -101,6 +103,15 @@
                     const inputs = zeile.querySelectorAll('input, textarea');
                     inputs.forEach(input => input.value = '');
                 }
+            }
+            function addKategorieZeile() {
+                const container = document.getElementById('kategorie-container');
+                const neueZeile = container.firstElementChild.cloneNode(true);
+                const inputs = neueZeile.getElementsByTagName('input');
+                for (let input of inputs) {
+                    input.value = '';
+                }
+                container.appendChild(neueZeile);
             }
             </script>
             <textarea id="anleitung" name="anleitung" placeholder="Zuerst das Mehl..." rows="5" required></textarea>
