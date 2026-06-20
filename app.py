@@ -89,6 +89,20 @@ def rezepte():
                            aktuelle_suche=suchbegriff,
                            aktuelle_kategorie=kategorie_filter)
 
+# ROUTE 7: Detailansicht eines einzelnen Rezepts (Guided Cooking)
+@app.route('/rezept/<int:id>')
+def rezept_detail(id):
+    conn = get_db_connection()
+    # Wir suchen genau das Rezept mit der angeklickten ID
+    rezept = conn.execute('SELECT * FROM rezepte WHERE id = ?', (id,)).fetchone()
+    conn.close()
+    
+    # Falls jemand eine ID eingibt, die es nicht gibt, schicken wir ihn zurück
+    if rezept is None:
+        return redirect(url_for('rezepte'))
+        
+    return render_template('rezept_detail.html', rezept=rezept)
+
 # ROUTE 2: Seite für das Formular anzeigen (mit dynamischem Zurück-Button)
 @app.route('/neu')
 def neues_rezept():
