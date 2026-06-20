@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Einkaufsliste</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        /* Wenn eine Checkbox angeklickt ist, streichen wir den Text durch */
+        input[type="checkbox"]:checked + span {
+            text-decoration: line-through;
+            color: var(--pico-muted-color);
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <nav>
+            <ul>
+                <li><strong>👨‍🍳 Berufsschul-Koch-App</strong></li>
+            </ul>
+            <ul>
+                <li><a href="/" class="outline">🏠 Menü</a></li>
+            </ul>
+        </nav>
+
+        <h1 style="margin-bottom: 2rem;">🛒 Einkaufsliste</h1>
+
+        <div class="grid">
+            <div>
+                <article style="padding: 1rem;">
+                    <h3 style="margin-bottom: 1rem; font-size: 1.2rem;">Enthaltene Rezepte</h3>
+                    <ul style="list-style-type: none; padding-left: 0;">
+                        {% for titel in rezepte %}
+                            <li style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--pico-muted-border-color);">
+                                <strong>{{ titel }}</strong>
+                                <form action="/einkaufsliste_entfernen_rezept" method="POST" style="margin: 0;">
+                                    <input type="hidden" name="titel" value="{{ titel }}">
+                                    <button type="submit" class="outline" style="padding: 2px 10px; border: none; font-size: 1.2rem;" title="Rezept von Liste entfernen">🗑️</button>
+                                </form>
+                            </li>
+                        {% else %}
+                            <p style="color: var(--pico-muted-color);">Noch keine Rezepte hinzugefügt.</p>
+                        {% endfor %}
+                    </ul>
+                </article>
+            </div>
+
+            <div>
+                <h3>Zutaten</h3>
+                <ul style="list-style-type: none; padding-left: 0;">
+                    {% for zutat in zutaten %}
+                        <li style="margin-bottom: 0.5rem;">
+                            <label style="display: flex; align-items: center; gap: 10px; margin: 0;">
+                                <input type="checkbox" style="margin:0;">
+                                <span><strong>{{ zutat['menge'] }} {{ zutat['einheit'] }}</strong> {{ zutat['name'] }}</span>
+                            </label>
+                        </li>
+                    {% else %}
+                        <p style="color: var(--pico-muted-color);">Die Zutatenliste ist leer.</p>
+                    {% endfor %}
+                </ul>
+
+                {% if manuell %}
+                    <hr>
+                    <h4 style="font-size: 1.1rem;">Zusätzliches (Manuell)</h4>
+                    <ul style="list-style-type: none; padding-left: 0;">
+                        {% for item in manuell %}
+                            <li style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <label style="display: flex; align-items: center; gap: 10px; margin: 0;">
+                                    <input type="checkbox" style="margin:0;"> 
+                                    <span>{{ item['name'] }}</span>
+                                </label>
+                                <form action="/einkaufsliste_entfernen_manuell/{{ item['id'] }}" method="POST" style="margin: 0;">
+                                    <button type="submit" class="outline" style="padding: 2px 10px; border: none; font-size: 1.2rem;" title="Entfernen">🗑️</button>
+                                </form>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                <form action="/einkaufsliste_manuell" method="POST" style="margin-top: 1.5rem; display: flex; gap: 10px;">
+                    <input type="text" name="name" placeholder="z.B. Cola, Küchenrolle..." required style="margin-bottom: 0; flex-grow: 1;">
+                    <button type="submit" style="margin-bottom: 0; white-space: nowrap;">➕ Hinzufügen</button>
+                </form>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

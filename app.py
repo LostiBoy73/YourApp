@@ -296,6 +296,111 @@ def einkaufsliste_hinzufuegen(id):
     # Wir schicken den Nutzer zurück zur Detailseite, geben aber ein heimliches "?erfolg=1" in der URL mit
     return redirect(url_for('rezept_detail', id=id, erfolg=1))
 
+# ROUTE 9: Die Einkaufsliste anzeigen und Zutaten zusammenrechnen
+@app.route('/einkaufsliste')
+def einkaufsliste():
+    conn = get_db_connection()
+    eintraege = conn.execute('SELECT * FROM einkaufsliste').fetchall()
+    conn.close()
+
+    # 1. Enthaltene Rezepte sammeln (ohne Duplikate und ohne "Manuell")
+    rezepte_set = set()
+    for e in eintraege:
+        if e['rezept_titel'] != 'Manuell':
+            rezepte_set.add(e['rezept_titel'])
+    enthaltene_rezepte = sorted(list(rezepte_set))
+
+    # 2. Zutaten zusammenrechnen
+    zutaten_dict = {}
+    manuelle_eintraege = []
+
+    for e in eintraege:
+        if e['rezept_titel'] == 'Manuell':
+            manuelle_eintraege.append(e)
+            continue
+        
+        name = e['name'].strip().capitalize()
+        einheit = e['einheit'].strip()
+        menge_str = e['menge'].strip()
+        
+        # Eindeutiger Schlüssel aus Name und Einheit (z.B. "Mehl_g")
+        key = f"{name}_{einheit.lower()}"
+        
+        if key not in zutaten_dict:
+            zutaten_dict[key] = {
+                'name': name, 'einheit': einheit, 'menge_zahl': 0.0, 'texte': []
+            }
+        
+        # Versuchen, die Menge in eine Zahl umzuwandeln und zu addieren
+        if menge_str:
+            try:
+                # Kommas durch Punkte ersetzen (für Dezimalzahlen wie 1,5)
+                menge_float = float(menge_str.replace(',', '.'))
+                zutaten_dict[key]['menge_zahl'] += menge_float
+            except ValueError:
+                # Wenn es Text ist (z.B. "etwas", "Prise"), heben wir den Text auf
+                zutaten_dict[key]['texte'].append(menge_str)
+    
+    # 3. Aufbereiten für die Anzeige im HTML
+    zusammengefasste_zutaten = []
+    for daten in zutaten_dict.values():
+        menge_anzeige = ""
+        if daten['menge_zahl'] > 0:
+            zahl = daten['menge_zahl']
+            # Macht aus 2.0 eine glatte 2, aber lässt 2.5 stehen
+            menge_anzeige = f"{int(zahl)}" if zahl.is_integer() else f"{zahl:.2f}".rstrip('0').rstrip('.')
+        
+        # Textmengen anhängen (z.B. "2 + etwas")
+        if daten['texte']:
+            texte_zusammen = " + ".join(daten['texte'])
+            menge_anzeige = f"{menge_anzeige} + {texte_zusammen}" if menge_anzeige else texte_zusammen
+        
+        zusammengefasste_zutaten.append({
+            'name': daten['name'], 'einheit': daten['einheit'], 'menge': menge_anzeige
+        })
+        
+    # Alphabetisch nach Zutatennamen sortieren
+    zusammengefasste_zutaten = sorted(zusammengefasste_zutaten, key=lambda x: x['name'])
+
+    return render_template('einkaufsliste.html', 
+                           rezepte=enthaltene_rezepte, 
+                           zutaten=zusammengefasste_zutaten,
+                           manuell=manuelle_eintraege)
+
+# ROUTE 10: Ein komplettes Rezept (und damit seine Zutaten) von der Liste entfernen
+@app.route('/einkaufsliste_entfernen_rezept', methods=['POST'])
+def einkaufsliste_entfernen_rezept():
+    titel = request.form['titel']
+    conn = get_db_connection()
+    # Löscht alle Zutaten, die zu diesem Rezeptnamen gehören
+    conn.execute('DELETE FROM einkaufsliste WHERE rezept_titel = ?', (titel,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('einkaufsliste'))
+
+# ROUTE 11: Ein manuelles Freitext-Feld zur Liste hinzufügen
+@app.route('/einkaufsliste_manuell', methods=['POST'])
+def einkaufsliste_manuell():
+    name = request.form['name']
+    conn = get_db_connection()
+    # Wir speichern es mit dem Platzhalter "Manuell", damit wir es später filtern können
+    conn.execute('''
+        INSERT INTO einkaufsliste (rezept_titel, menge, einheit, name)
+        VALUES ('Manuell', '', '', ?)
+    ''', (name,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('einkaufsliste'))
+
+# ROUTE 12: Manuellen Eintrag löschen
+@app.route('/einkaufsliste_entfernen_manuell/<int:id>', methods=['POST'])
+def einkaufsliste_entfernen_manuell(id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM einkaufsliste WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('einkaufsliste'))
+
 if __name__ == '__main__':
     # Starte den Server im Debug-Modus (er startet bei Änderungen automatisch neu)
     app.run(debug=True)
