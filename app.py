@@ -36,13 +36,58 @@ init_db()
 def index():
     return render_template('index.html')
 
-# NEUE ROUTE: Die alte Rezept-Übersicht ist jetzt hier
+# NEUE ROUTE: Die Rezept-Übersicht inkl. Filter- und Suchfunktion
 @app.route('/rezepte')
 def rezepte():
+    # 1. Suchbegriffe aus der URL auslesen (Standard ist leer)
+    suchbegriff = request.args.get('suche', '').lower()
+    kategorie_filter = request.args.get('kategorie', '')
+
     conn = get_db_connection()
-    rezepte_db = conn.execute('SELECT * FROM rezepte').fetchall()
+    alle_rezepte = conn.execute('SELECT * FROM rezepte').fetchall()
     conn.close()
-    return render_template('rezepte.html', rezepte=rezepte_db)
+
+    # 2. Alle einzigartigen Kategorien für das Dropdown sammeln
+    alle_kategorien = set() # Ein 'set' in Python verhindert automatisch Duplikate
+    for r in alle_rezepte:
+        if r['kategorie']:
+            # Wir säubern die Tags und schreiben sie groß
+            tags = [k.strip().capitalize() for k in r['kategorie'].split(',') if k.strip()]
+            alle_kategorien.update(tags)
+    
+    # Die gesammelten Kategorien alphabetisch sortieren
+    kategorien_liste = sorted(list(alle_kategorien))
+
+    # 3. Rezepte filtern
+    gefilterte_rezepte = []
+    for r in alle_rezepte:
+        treffer_suche = True
+        treffer_kategorie = True
+
+        # Wenn ein Suchbegriff eingegeben wurde: Prüfen, ob er im Titel steckt (z.B. "pizza" in "Pizzaschnecken")
+        if suchbegriff:
+            if suchbegriff not in r['titel'].lower():
+                treffer_suche = False
+        
+        # Wenn eine Kategorie ausgewählt wurde: Prüfen, ob das Rezept diesen Tag hat
+        if kategorie_filter:
+            if r['kategorie']:
+                tags = [k.strip().capitalize() for k in r['kategorie'].split(',') if k.strip()]
+                if kategorie_filter not in tags:
+                    treffer_kategorie = False
+            else:
+                treffer_kategorie = False # Wenn das Rezept gar keine Kategorie hat, ist es kein Treffer
+
+        # Nur wenn das Rezept BEIDE Bedingungen erfüllt, wird es angezeigt
+        if treffer_suche and treffer_kategorie:
+            gefilterte_rezepte.append(r)
+
+    # Wir übergeben die gefilterten Rezepte UND die Filter-Auswahl an das HTML-Template
+    return render_template('rezepte.html', 
+                           rezepte=gefilterte_rezepte, 
+                           alle_kategorien=kategorien_liste,
+                           aktuelle_suche=suchbegriff,
+                           aktuelle_kategorie=kategorie_filter)
 
 # ROUTE 2: Seite für das Formular anzeigen (mit dynamischem Zurück-Button)
 @app.route('/neu')
@@ -93,10 +138,11 @@ def speichern():
     zutaten_text = "\n".join(zutaten_liste)
 
     conn = get_db_connection()
+    # Die Spaltennamen bleiben wie in der Datenbank definiert (kategorie, anleitung)
     conn.execute('''
-        INSERT INTO rezepte (titel, dauer, kategorie_text, zutaten, anleitung_text)
+        INSERT INTO rezepte (titel, dauer, kategorie, zutaten, anleitung)
         VALUES (?, ?, ?, ?, ?)
-    ''', (titel, dauer, kategorie, zutaten_text, anleitung))
+    ''', (titel, dauer, kategorie_text, zutaten_text, anleitung_text))
     conn.commit()
     conn.close()
 
@@ -148,11 +194,12 @@ def aktualisieren(id):
     zutaten_text = "\n".join(zutaten_liste)
 
     conn = get_db_connection()
+    # Auch hier: Echte Spaltennamen oben, neue Variablen unten
     conn.execute('''
         UPDATE rezepte
-        SET titel = ?, dauer = ?, kategorie_text = ?, zutaten = ?, anleitung_text = ?
+        SET titel = ?, dauer = ?, kategorie = ?, zutaten = ?, anleitung = ?
         WHERE id = ?
-    ''', (titel, dauer, kategorie, zutaten_text, anleitung, id))
+    ''', (titel, dauer, kategorie_text, zutaten_text, anleitung_text, id))
     conn.commit()
     conn.close()
 

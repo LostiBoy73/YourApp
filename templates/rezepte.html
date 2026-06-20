@@ -19,6 +19,24 @@
         </nav>
 
         <h2>Meine Rezepte</h2>
+
+        <form method="GET" action="/rezepte" style="background: var(--pico-card-background-color); padding: 1rem; border-radius: 10px; border: 1px solid var(--pico-muted-border-color); margin-bottom: 2rem;">
+            <div class="grid">
+                <input type="search" name="suche" placeholder="Rezeptname (z.B. Pizza)" value="{{ aktuelle_suche }}" style="margin-bottom: 1rem;">
+                
+                <select name="kategorie" style="margin-bottom: 1rem;">
+                    <option value="">Alle Kategorien</option>
+                    {% for kat in alle_kategorien %}
+                        <option value="{{ kat }}" {% if kat == aktuelle_kategorie %}selected{% endif %}>{{ kat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" style="margin-bottom: 0; flex-grow: 1;">🔍 Filtern & Suchen</button>
+                <a href="/rezepte" role="button" class="secondary outline" style="margin-bottom: 0;">❌ Zurücksetzen</a>
+            </div>
+        </form>
         
         <div class="grid">
             {% for rezept in rezepte %}
@@ -53,7 +71,7 @@
                 </footer>
             </article>
             {% else %}
-                <p>Noch keine Rezepte eingetragen. Klicke oben auf den Button!</p>
+                <p style="text-align: center; width: 100%;">Keine Rezepte gefunden. Versuch es mal mit einem anderen Suchbegriff oder setze die Filter zurück!</p>
             {% endfor %}
         </div>
     </main>
