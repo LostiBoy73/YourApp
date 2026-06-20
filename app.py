@@ -26,6 +26,17 @@ def init_db():
             anleitung TEXT
         )
     ''')
+
+    # 2. NEU: Die Tabelle für unsere Einkaufsliste
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS einkaufsliste (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            rezept_titel TEXT,
+            menge TEXT,
+            einheit TEXT,
+            name TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -257,6 +268,41 @@ def loeschen(id):
 
     # Danach zurück zur Startseite
     return redirect(url_for('rezepte'))
+
+# ROUTE 8: Zutaten eines Rezepts auf die Einkaufsliste setzen
+@app.route('/einkaufsliste_hinzufuegen/<int:id>', methods=['POST'])
+def einkaufsliste_hinzufuegen(id):
+    conn = get_db_connection()
+    rezept = conn.execute('SELECT * FROM rezepte WHERE id = ?', (id,)).fetchone()
+    
+    if rezept and rezept['zutaten']:
+        # Wir gehen jede gespeicherte Zutat durch
+        for zeile in rezept['zutaten'].split('\n'):
+            if zeile.strip():
+                zutat_daten = zeile.split('|')
+                
+                # Neues Format (3 Teile)
+                if len(zutat_daten) == 3:
+                    menge = zutat_daten[0]
+                    einheit = zutat_daten[1]
+                    name = zutat_daten[2]
+                # Altes Format (Fallback)
+                else:
+                    menge = ""
+                    einheit = ""
+                    name = zeile
+                
+                # Jede Zutat kommt als einzelne Zeile in die Einkaufsliste
+                conn.execute('''
+                    INSERT INTO einkaufsliste (rezept_titel, menge, einheit, name)
+                    VALUES (?, ?, ?, ?)
+                ''', (rezept['titel'], menge, einheit, name))
+                
+    conn.commit()
+    conn.close()
+    
+    # Wir schicken den Nutzer zurück zur Detailseite, geben aber ein heimliches "?erfolg=1" in der URL mit
+    return redirect(url_for('rezept_detail', id=id, erfolg=1))
 
 if __name__ == '__main__':
     # Starte den Server im Debug-Modus (er startet bei Änderungen automatisch neu)
