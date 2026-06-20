@@ -153,10 +153,6 @@ def speichern():
             schritte_liste.append(f"{zeit}:::{text}")
             
     anleitung_text = "|||".join(schritte_liste)
-    
-    # Leere Schritte rausfiltern und mit "|||" als Trennzeichen zusammenkleben
-    schritte_liste = [s.strip() for s in schritte if s.strip()]
-    anleitung_text = "|||".join(schritte_liste)
 
     # NEU: Die Listen der dynamischen Felder abfangen
     mengen = request.form.getlist('zutaten_menge[]')
@@ -225,10 +221,6 @@ def aktualisieren(id):
             # Format speichern: Zeit:::Text
             schritte_liste.append(f"{zeit}:::{text}")
             
-    anleitung_text = "|||".join(schritte_liste)
-    
-    # Leere Schritte rausfiltern und mit "|||" als Trennzeichen zusammenkleben
-    schritte_liste = [s.strip() for s in schritte if s.strip()]
     anleitung_text = "|||".join(schritte_liste)
 
     # NEU: Auch beim Bearbeiten die Listen der Zutaten abfangen
