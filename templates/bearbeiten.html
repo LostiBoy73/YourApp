@@ -22,12 +22,6 @@
         <form action="/aktualisieren/{{ rezept['id'] }}" method="POST">
             <label for="titel">Rezeptname</label>
             <input type="text" id="titel" name="titel" value="{{ rezept['titel'] }}" required>
-
-            <div class="grid">
-                <div>
-                    <label for="dauer">Dauer (in Min.)</label>
-                    <input type="number" id="dauer" name="dauer" value="{{ rezept['dauer'] }}" required>
-                </div>
                 <div>
                     <label>Kategorien (Tags)</label>
                     <div id="kategorie-container">
@@ -49,8 +43,7 @@
                     </div>
                     <button type="button" class="secondary outline" onclick="addKategorieZeile()" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; margin-top: 0.5rem;">➕ Kategorie hinzufügen</button>
                 </div>
-            </div>
-
+            
             <label>Zutaten</label>
             <div id="zutaten-container">
                 {% if rezept['zutaten'] %}
@@ -102,30 +95,34 @@
             <label>Zubereitung (Schritt für Schritt)</label>
             <div id="schritte-container">
                 {% if rezept['anleitung'] %}
-                    {% if '|||' in rezept['anleitung'] %}
-                        {% for schritt in rezept['anleitung'].split('|||') %}
-                            {% if schritt.strip() %}
-                            <div class="schritt-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: center;">
-                                <textarea name="anleitung_schritt[]" rows="2" required style="margin-bottom:0; flex-grow: 1;">{{ schritt }}</textarea>
-                                <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none;" title="Schritt entfernen">🗑️</a>
+                    {% for schritt in rezept['anleitung'].split('|||') %}
+                        {% if schritt.strip() %}
+                            {% set schritt_daten = schritt.split(':::') %}
+                            <div class="schritt-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: start;">
+                                
+                                {% if schritt_daten|length == 2 %}
+                                    <input type="number" name="anleitung_dauer[]" value="{{ schritt_daten[0] }}" placeholder="Min." style="width: 80px; margin-bottom: 0;">
+                                    <textarea name="anleitung_schritt[]" rows="2" required style="margin-bottom:0; flex-grow: 1;">{{ schritt_daten[1] }}</textarea>
+                                
+                                {% else %}
+                                    <input type="number" name="anleitung_dauer[]" placeholder="Min." style="width: 80px; margin-bottom: 0;">
+                                    <textarea name="anleitung_schritt[]" rows="2" required style="margin-bottom:0; flex-grow: 1;">{{ schritt_daten[0] }}</textarea>
+                                {% endif %}
+                                
+                                <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none; padding-top: 0.5rem;" title="Schritt entfernen">🗑️</a>
                             </div>
-                            {% endif %}
-                        {% endfor %}
-                    {% else %}
-                        <div class="schritt-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: center;">
-                            <textarea name="anleitung_schritt[]" rows="2" required style="margin-bottom:0; flex-grow: 1;">{{ schritt }}</textarea>
-                            <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none;" title="Schritt entfernen">🗑️</a>
-                        </div>
-                    {% endif %}
+                        {% endif %}
+                    {% endfor %}
                 {% else %}
-                    <div class="schritt-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: center;">
-                        <textarea name="anleitung_schritt[]" rows="2" required style="margin-bottom:0; flex-grow: 1;">{{ schritt }}</textarea>
-                        <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none;" title="Schritt entfernen">🗑️</a>
+                    <div class="schritt-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: start;">
+                        <input type="number" name="anleitung_dauer[]" placeholder="Min." style="width: 80px; margin-bottom: 0;">
+                        <textarea name="anleitung_schritt[]" placeholder="Schritt 1..." rows="2" required style="margin-bottom:0; flex-grow: 1;"></textarea>
+                        <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none; padding-top: 0.5rem;" title="Schritt entfernen">🗑️</a>
                     </div>
                 {% endif %}
             </div>
 
-            <button type="button" class="secondary outline" onclick="addSchrittZeile()">➕ Schritt hinzufügen</button>
+            <button type="button" class="secondary outline" onclick="addSchrittZeile()" style="margin-bottom: 2rem;">➕ Schritt hinzufügen</button>
 
             <script>
             function addSchrittZeile() {
@@ -160,7 +157,6 @@
                 container.appendChild(neueZeile);
             }
             </script>
-            <textarea id="anleitung" name="anleitung" rows="5" required>{{ rezept['anleitung'] }}</textarea>
 
            <button type="submit">💾 Änderungen speichern</button>
         </form> 

@@ -103,7 +103,6 @@ def neues_rezept():
 @app.route('/speichern', methods=['POST'])
 def speichern():
     titel = request.form['titel']
-    dauer = request.form['dauer']
 
     # Die Liste der Kategorien abfangen
     kategorien = request.form.getlist('kategorie[]')
@@ -112,8 +111,23 @@ def speichern():
     kategorien_liste = [k.strip() for k in kategorien if k.strip()]
     kategorie_text = ", ".join(kategorien_liste)
 
-    # Die Liste der Schritte abfangen
+    # Die Liste der Schritte UND Dauern abfangen
     schritte = request.form.getlist('anleitung_schritt[]')
+    dauern = request.form.getlist('anleitung_dauer[]')
+    
+    schritte_liste = []
+    gesamt_dauer = 0
+    
+    for i in range(len(schritte)):
+        text = schritte[i].strip()
+        if text:
+            # Zeit abfangen. Wenn nichts eingetragen wurde, nehmen wir 0
+            zeit = dauern[i] if i < len(dauern) and dauern[i] else "0"
+            gesamt_dauer += int(zeit)
+            # Format speichern: Zeit:::Text
+            schritte_liste.append(f"{zeit}:::{text}")
+            
+    anleitung_text = "|||".join(schritte_liste)
     
     # Leere Schritte rausfiltern und mit "|||" als Trennzeichen zusammenkleben
     schritte_liste = [s.strip() for s in schritte if s.strip()]
@@ -137,12 +151,12 @@ def speichern():
     # Alle Zutaten-Zeilen werden mit einem echten Zeilenumbruch (\n) verbunden
     zutaten_text = "\n".join(zutaten_liste)
 
+    
     conn = get_db_connection()
-    # Die Spaltennamen bleiben wie in der Datenbank definiert (kategorie, anleitung)
     conn.execute('''
         INSERT INTO rezepte (titel, dauer, kategorie, zutaten, anleitung)
         VALUES (?, ?, ?, ?, ?)
-    ''', (titel, dauer, kategorie_text, zutaten_text, anleitung_text))
+    ''', (titel, gesamt_dauer, kategorie_text, zutaten_text, anleitung_text))
     conn.commit()
     conn.close()
 
@@ -162,7 +176,6 @@ def bearbeiten(id):
 @app.route('/aktualisieren/<int:id>', methods=['POST'])
 def aktualisieren(id):
     titel = request.form['titel']
-    dauer = request.form['dauer']
 
     # Die Liste der Kategorien abfangen
     kategorien = request.form.getlist('kategorie[]')
@@ -171,8 +184,23 @@ def aktualisieren(id):
     kategorien_liste = [k.strip() for k in kategorien if k.strip()]
     kategorie_text = ", ".join(kategorien_liste)
 
-    # Die Liste der Schritte abfangen
+    # Die Liste der Schritte UND Dauern abfangen
     schritte = request.form.getlist('anleitung_schritt[]')
+    dauern = request.form.getlist('anleitung_dauer[]')
+    
+    schritte_liste = []
+    gesamt_dauer = 0
+    
+    for i in range(len(schritte)):
+        text = schritte[i].strip()
+        if text:
+            # Zeit abfangen. Wenn nichts eingetragen wurde, nehmen wir 0
+            zeit = dauern[i] if i < len(dauern) and dauern[i] else "0"
+            gesamt_dauer += int(zeit)
+            # Format speichern: Zeit:::Text
+            schritte_liste.append(f"{zeit}:::{text}")
+            
+    anleitung_text = "|||".join(schritte_liste)
     
     # Leere Schritte rausfiltern und mit "|||" als Trennzeichen zusammenkleben
     schritte_liste = [s.strip() for s in schritte if s.strip()]
@@ -194,12 +222,11 @@ def aktualisieren(id):
     zutaten_text = "\n".join(zutaten_liste)
 
     conn = get_db_connection()
-    # Auch hier: Echte Spaltennamen oben, neue Variablen unten
     conn.execute('''
         UPDATE rezepte
         SET titel = ?, dauer = ?, kategorie = ?, zutaten = ?, anleitung = ?
         WHERE id = ?
-    ''', (titel, dauer, kategorie_text, zutaten_text, anleitung_text, id))
+    ''', (titel, gesamt_dauer, kategorie_text, zutaten_text, anleitung_text, id))
     conn.commit()
     conn.close()
 

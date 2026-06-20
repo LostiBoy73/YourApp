@@ -26,22 +26,15 @@
         <form action="/speichern" method="POST">
             <label for="titel">Rezeptname</label>
             <input type="text" id="titel" name="titel" placeholder="z.B. Käsespätzle" required>
-
-            <div class="grid">
-                <div>
-                    <label for="dauer">Dauer (in Min.)</label>
-                    <input type="number" id="dauer" name="dauer" placeholder="z.B. 30" required>
-                </div>
-                <div>
-                    <label>Kategorien (Tags)</label>
-                    <div id="kategorie-container">
-                        <div class="kategorie-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: center;">
-                            <input type="text" name="kategorie[]" placeholder="z.B. Vegetarisch" required style="margin-bottom:0; flex-grow: 1;">
-                            <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none;" title="Kategorie entfernen">🗑️</a>
-                        </div>
+            <div></div>
+                <label>Kategorien (Tags)</label>
+                <div id="kategorie-container">
+                    <div class="kategorie-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: center;">
+                        <input type="text" name="kategorie[]" placeholder="z.B. Vegetarisch" required style="margin-bottom:0; flex-grow: 1;">
+                        <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none;" title="Kategorie entfernen">🗑️</a>
                     </div>
-                    <button type="button" class="secondary outline" onclick="addKategorieZeile()" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; margin-top: 0.5rem;">➕ Kategorie hinzufügen</button>
                 </div>
+                <button type="button" class="secondary outline" onclick="addKategorieZeile()" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; margin-top: 0.5rem;">➕ Kategorie hinzufügen</button>
             </div>
 
             <label>Zutaten</label>
@@ -73,9 +66,10 @@
             </script>
             <label>Zubereitung (Schritt für Schritt)</label>
             <div id="schritte-container">
-                <div class="schritt-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: center;">
+                <div class="schritt-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: start;">
+                    <input type="number" name="anleitung_dauer[]" placeholder="Min." style="width: 80px; margin-bottom: 0;">
                     <textarea name="anleitung_schritt[]" placeholder="Schritt 1: Zwiebeln fein würfeln..." rows="2" required style="margin-bottom:0; flex-grow: 1;"></textarea>
-                    <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none;" title="Schritt entfernen">🗑️</a>
+                    <a href="#" onclick="removeZeile(this); return false;" style="font-size: 1.5rem; text-decoration: none; padding-top: 0.5rem;" title="Schritt entfernen">🗑️</a>
                 </div>
             </div>
             <button type="button" class="secondary outline" onclick="addSchrittZeile()">➕ Schritt hinzufügen</button>
@@ -114,8 +108,7 @@
                 container.appendChild(neueZeile);
             }
             </script>
-            <textarea id="anleitung" name="anleitung" placeholder="Zuerst das Mehl..." rows="5" required></textarea>
-
+           
             <button type="submit">Rezept speichern</button>
         </form>
     </main>
