@@ -61,7 +61,7 @@ async function loadRezepte() {
             container.innerHTML += `
                 <article>
                     <header style="margin-bottom: 0.5rem;">
-                        <h3 style="margin-bottom: 0.5rem;"><a href="./rezept_detail.html?id=${rezept.id}">${rezept.titel}</a></h3>
+                        <h3 style="margin-bottom: 0.5rem;"><a href="./rezepte_detail.html?id=${rezept.id}">${rezept.titel}</a></h3>
                         <div style="margin-bottom: 0;">${catHTML || '<span style="font-size: 0.8rem; color: var(--pico-muted-color);">Keine Kategorien</span>'}</div>
                     </header>
                     <footer style="margin-top: auto;">
@@ -80,7 +80,7 @@ async function loadRezepte() {
 }
 
 // ==========================================
-// 2. REZEPT DETAILANSICHT (rezept_detail.html)
+// 2. REZEPT DETAILANSICHT (rezepte_detail.html)
 // ==========================================
 let slides = [];
 let aktuellerSchritt = 0;
@@ -480,7 +480,7 @@ async function loadBearbeitenForm() {
             
             try {
                 await fetch(`${API_BASE_URL}/api/rezepte/${id}`, { method: 'PUT', body: formData });
-                window.location.href = `./rezept_detail.html?id=${id}`;
+                window.location.href = `./rezepte_detail.html?id=${id}`;
             } catch (error) {
                 alert('Fehler beim Aktualisieren!');
                 btn.disabled = false; btn.innerHTML = 'Änderungen speichern';
