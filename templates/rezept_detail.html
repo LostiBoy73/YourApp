@@ -51,13 +51,25 @@
         <div class="grid">
             <div>
                 <h3>Zutaten</h3>
+
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; background: var(--pico-form-element-background-color); padding: 0.5rem 1rem; border-radius: 10px; border: 1px solid var(--pico-muted-border-color);">
+                    <strong style="margin: 0;">Portionen:</strong>
+                    <input type="number" id="portionen-rechner" value="{{ rezept['portionen']|default(1) }}" min="1" style="width: 80px; margin: 0; padding: 0.2rem;" onchange="portionenUmrechnen()">
+                </div>
+
                 <ul>
                     {% if rezept['zutaten'] %}
                         {% for zeile in rezept['zutaten'].split('\n') %}
                             {% if zeile.strip() %}
                                 {% set zutat_daten = zeile.split('|') %}
                                 {% if zutat_daten|length == 3 %}
-                                    <li><strong>{{ zutat_daten[0] }} {{ zutat_daten[1] }}</strong> {{ zutat_daten[2] }}</li>
+                                    <li>
+                                        <strong>
+                                            <span class="zutat-menge" data-grundmenge="{{ zutat_daten[0] }}">{{ zutat_daten[0] }}</span> 
+                                            {{ zutat_daten[1] }}
+                                        </strong> 
+                                        {{ zutat_daten[2] }}
+                                    </li>
                                 {% else %}
                                     <li>{{ zeile }}</li>
                                 {% endif %}
@@ -151,6 +163,31 @@
             if (aktuellerSchritt > 0) {
                 zeigeSchritt(aktuellerSchritt - 1);
             }
+        }
+
+        // Die Standard-Portionen aus der Datenbank (oder 1 für alte Rezepte)
+        const standardPortionen = {{ rezept['portionen']|default(1) }};
+        
+        function portionenUmrechnen() {
+            const neuePortionen = document.getElementById('portionen-rechner').value;
+            const mengenFelder = document.querySelectorAll('.zutat-menge');
+
+            mengenFelder.forEach(feld => {
+                // Den unsichtbaren Originalwert holen und Kommas zu Punkten machen, damit JS rechnen kann
+                let grundMengeStr = feld.getAttribute('data-grundmenge').replace(',', '.');
+                let grundMenge = parseFloat(grundMengeStr);
+
+                // Prüfen, ob es eine echte Zahl ist (damit Texte wie "etwas" nicht kaputtgehen)
+                if (!isNaN(grundMenge) && standardPortionen > 0) {
+                    let neueMenge = (grundMenge / standardPortionen) * neuePortionen;
+                    
+                    // Schick runden: Wenn es eine glatte Zahl ist, ohne Komma, sonst 1 Nachkommastelle
+                    let anzeige = Number.isInteger(neueMenge) ? neueMenge : neueMenge.toFixed(1);
+                    
+                    // Punkt wieder zu Komma machen und anzeigen
+                    feld.innerText = anzeige.toString().replace('.', ',');
+                }
+            });
         }
 
         // Beim ersten Laden der Seite einmal die Buttons richtig einstellen

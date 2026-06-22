@@ -16,6 +16,8 @@ def get_db_connection():
 
 def init_db():
     conn = get_db_connection()
+    
+    # 1. Die alte Rezept-Tabelle erstellen
     conn.execute('''
         CREATE TABLE IF NOT EXISTS rezepte (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,7 +29,13 @@ def init_db():
         )
     ''')
 
-    # 2. NEU: Die Tabelle für unsere Einkaufsliste
+    # NEU: Danach (und außerhalb der Anführungszeichen!) die neue Spalte anhängen
+    try:
+        conn.execute('ALTER TABLE rezepte ADD COLUMN portionen INTEGER DEFAULT 1')
+    except sqlite3.OperationalError:
+        pass
+
+    # 2. Die Tabelle für unsere Einkaufsliste
     conn.execute('''
         CREATE TABLE IF NOT EXISTS einkaufsliste (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,6 +45,7 @@ def init_db():
             name TEXT
         )
     ''')
+    
     conn.commit()
     conn.close()
 
@@ -128,6 +137,7 @@ def neues_rezept():
 @app.route('/speichern', methods=['POST'])
 def speichern():
     titel = request.form['titel']
+    portionen = request.form.get('portionen', 1)
 
     # Die Liste der Kategorien abfangen
     kategorien = request.form.getlist('kategorie[]')
@@ -175,9 +185,9 @@ def speichern():
     
     conn = get_db_connection()
     conn.execute('''
-        INSERT INTO rezepte (titel, dauer, kategorie, zutaten, anleitung)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (titel, gesamt_dauer, kategorie_text, zutaten_text, anleitung_text))
+        INSERT INTO rezepte (titel, dauer, kategorie, zutaten, anleitung, portionen)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (titel, gesamt_dauer, kategorie_text, zutaten_text, anleitung_text, portionen))
     conn.commit()
     conn.close()
 
@@ -197,6 +207,7 @@ def bearbeiten(id):
 @app.route('/aktualisieren/<int:id>', methods=['POST'])
 def aktualisieren(id):
     titel = request.form['titel']
+    portionen = request.form.get('portionen', 1)
 
     # Die Liste der Kategorien abfangen
     kategorien = request.form.getlist('kategorie[]')
@@ -241,9 +252,9 @@ def aktualisieren(id):
     conn = get_db_connection()
     conn.execute('''
         UPDATE rezepte
-        SET titel = ?, dauer = ?, kategorie = ?, zutaten = ?, anleitung = ?
+        SET titel = ?, dauer = ?, kategorie = ?, zutaten = ?, anleitung = ?, portionen = ?
         WHERE id = ?
-    ''', (titel, gesamt_dauer, kategorie_text, zutaten_text, anleitung_text, id))
+    ''', (titel, gesamt_dauer, kategorie_text, zutaten_text, anleitung_text, portionen, id))
     conn.commit()
     conn.close()
 
