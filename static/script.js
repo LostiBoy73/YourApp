@@ -384,20 +384,36 @@ function removeZeile(element) {
 
 // Formular "Neues Rezept" abschicken
 const formNeuesRezept = document.getElementById('form-neues-rezept');
+
 if (formNeuesRezept) {
-    formNeuesRezept.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(formNeuesRezept);
-        const btn = e.submitter; btn.disabled = true; btn.innerHTML = 'Speichere...';
-        
-        try {
-            await fetch(`${API_BASE_URL}/api/rezepte`, { method: 'POST', body: formData });
-            window.location.href = './rezepte.html';
-        } catch (error) {
-            alert('Fehler beim Speichern!');
-            btn.disabled = false; btn.innerHTML = 'Rezept speichern';
-        }
-    });
+  formNeuesRezept.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(formNeuesRezept);
+    const btn = e.submitter;
+
+    btn.disabled = true;
+    btn.innerHTML = 'Speichere...';
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/rezepte`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.detail || result.error || 'Speichern fehlgeschlagen');
+      }
+
+      window.location.href = `./rezepte_detail.html?id=${result.id}`;
+    } catch (error) {
+      alert('Fehler beim Speichern: ' + error.message);
+      btn.disabled = false;
+      btn.innerHTML = 'Rezept speichern';
+    }
+  });
 }
 
 // Seite "Bearbeiten" laden und Felder befüllen
@@ -473,19 +489,34 @@ async function loadBearbeitenForm() {
         }
 
         // Submit Handler fürs Bearbeiten-Formular
-        formBearbeiten.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(formBearbeiten);
-            const btn = e.submitter; btn.disabled = true; btn.innerHTML = 'Aktualisiere...';
-            
-            try {
-                await fetch(`${API_BASE_URL}/api/rezepte/${id}`, { method: 'PUT', body: formData });
-                window.location.href = `./rezepte_detail.html?id=${id}`;
-            } catch (error) {
-                alert('Fehler beim Aktualisieren!');
-                btn.disabled = false; btn.innerHTML = 'Änderungen speichern';
-            }
+    formBearbeiten.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+    const formData = new FormData(formBearbeiten);
+    const btn = e.submitter;
+
+    btn.disabled = true;
+    btn.innerHTML = 'Aktualisiere...';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/rezepte/${id}`, {
+            method: 'PUT',
+            body: formData
         });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.detail || result.error || 'Aktualisieren fehlgeschlagen');
+        }
+
+        window.location.href = `./rezepte_detail.html?id=${id}`;
+        } catch (error) {
+            alert('Fehler beim Aktualisieren: ' + error.message);
+            btn.disabled = false;
+            btn.innerHTML = 'Änderungen speichern';
+        }
+    });
 
     } catch (e) {
         console.error("Fehler beim Laden der Bearbeitungs-Daten:", e);
