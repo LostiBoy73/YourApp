@@ -448,21 +448,6 @@ def import_starten():
     # So kann er die importierten Zutaten überprüfen und ggf. kleine Fehler des Scrapers sofort korrigieren.
     return redirect(url_for('bearbeiten', id=neue_id))
 
-# TEMPORÄRE ROUTE: Um die fehlende Spalte mit Gewalt in die DB zu drücken
-@app.route('/db_reparieren')
-def db_reparieren():
-    conn = get_db_connection()
-    try:
-        conn.execute('ALTER TABLE rezepte ADD COLUMN portionen INTEGER DEFAULT 1')
-        conn.commit()
-        ergebnis = "✅ Datenbank erfolgreich repariert! Die Spalte 'portionen' ist jetzt da."
-    except Exception as e:
-        ergebnis = f"⚠️ Fehler (oder Spalte war schon da): {e}"
-    finally:
-        conn.close()
-        
-    return ergebnis
-
 if __name__ == '__main__':
     # Starte den Server im Debug-Modus (er startet bei Änderungen automatisch neu)
     app.run(debug=True)
