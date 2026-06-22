@@ -410,6 +410,59 @@ def importieren():
     error = request.args.get('error')
     return render_template('import.html', error=error)
 
+# ROUTE: Den Import verarbeiten und in die Datenbank speichern
+@app.route('/import_starten', methods=['POST'])
+def import_starten():
+    url = request.form['url']
+    
+    # Sicherheits-Check: Ist es überhaupt ein Chefkoch-Link?
+    if 'chefkoch.de' not in url:
+        return redirect(url_for('importieren', error='Bitte gib einen gültigen Link von www.chefkoch.de ein!'))
+        
+    # Wir importieren unsere selbstgeschriebene Logik
+    from chefkoch_import import importiere_rezept
+    ergebnis = importiere_rezept(url)
+    
+    # Falls der Import schiefging, zurück mit Fehlermeldung
+    if not ergebnis['erfolg']:
+        return redirect(url_for('importieren', error=ergebnis['fehler']))
+        
+    # Ansonsten speichern wir das Rezept in der Datenbank
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Wir geben dem Rezept direkt den Tag "Importiert"
+    kategorie_text = "Importiert"
+    
+    cursor.execute('''
+        INSERT INTO rezepte (titel, dauer, kategorie, zutaten, anleitung, portionen)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (ergebnis['titel'], ergebnis['dauer'], kategorie_text, ergebnis['zutaten'], ergebnis['anleitung'], ergebnis['portionen']))
+    
+    # Wir holen uns die ID des gerade erstellten Rezepts
+    neue_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    # UX-Trick: Wir leiten den Nutzer nicht auf die Detailansicht, sondern direkt in den BEARBEITEN-Modus!
+    # So kann er die importierten Zutaten überprüfen und ggf. kleine Fehler des Scrapers sofort korrigieren.
+    return redirect(url_for('bearbeiten', id=neue_id))
+
+# TEMPORÄRE ROUTE: Um die fehlende Spalte mit Gewalt in die DB zu drücken
+@app.route('/db_reparieren')
+def db_reparieren():
+    conn = get_db_connection()
+    try:
+        conn.execute('ALTER TABLE rezepte ADD COLUMN portionen INTEGER DEFAULT 1')
+        conn.commit()
+        ergebnis = "✅ Datenbank erfolgreich repariert! Die Spalte 'portionen' ist jetzt da."
+    except Exception as e:
+        ergebnis = f"⚠️ Fehler (oder Spalte war schon da): {e}"
+    finally:
+        conn.close()
+        
+    return ergebnis
+
 if __name__ == '__main__':
     # Starte den Server im Debug-Modus (er startet bei Änderungen automatisch neu)
     app.run(debug=True)
