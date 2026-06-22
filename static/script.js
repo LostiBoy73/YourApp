@@ -3,7 +3,7 @@
 // ==========================================
 // Für lokale Tests am PC (Lass das erstmal so stehen!)
 // Später, wenn der Pi läuft, änderst du das zu: 'https://api.robots-compliance.cc'
-const API_BASE_URL = 'http://127.0.0.1:5000';
+const API_BASE_URL = "https://robots-compliance.cc";
 
 // Hilfsfunktion: Parameter aus der URL lesen (z.B. ?id=5)
 function getQueryParam(param) {
