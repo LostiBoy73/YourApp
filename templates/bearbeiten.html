@@ -111,7 +111,7 @@
                             <div class="schritt-zeile" style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: start;">
                                 
                                 {% if schritt_daten|length == 2 %}
-                                    <input type="number" name="anleitung_dauer[]" value="{{ schritt_daten[0] }}" placeholder="Min." style="width: 80px; margin-bottom: 0;">
+                                    <input type="number" name="anleitung_dauer[]" value="{{ schritt_daten[0].strip() }}" placeholder="Min." style="width: 80px; margin-bottom: 0;">
                                     <textarea name="anleitung_schritt[]" rows="2" required style="margin-bottom:0; flex-grow: 1;">{{ schritt_daten[1] }}</textarea>
                                 
                                 {% else %}

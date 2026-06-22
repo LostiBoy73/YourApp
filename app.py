@@ -133,20 +133,18 @@ def neues_rezept():
     # Wir übergeben die Info an das HTML-Template
     return render_template('neues_rezept.html', von_wo=von_wo)
 
-# ROUTE 3: Formulardaten empfangen und in der DB speichern
+# ROUTE 3: Die Formulardaten speichern (Neues Rezept)
 @app.route('/speichern', methods=['POST'])
 def speichern():
     titel = request.form['titel']
     portionen = request.form.get('portionen', 1)
 
-    # Die Liste der Kategorien abfangen
+    # --- Kategorien ---
     kategorien = request.form.getlist('kategorie[]')
-    
-    # Leere Felder ignorieren und mit Komma getrennt zusammenkleben
     kategorien_liste = [k.strip() for k in kategorien if k.strip()]
     kategorie_text = ", ".join(kategorien_liste)
 
-    # Die Liste der Schritte UND Dauern abfangen
+    # --- Zubereitung & Zeiten ---
     schritte = request.form.getlist('anleitung_schritt[]')
     dauern = request.form.getlist('anleitung_dauer[]')
     
@@ -156,33 +154,28 @@ def speichern():
     for i in range(len(schritte)):
         text = schritte[i].strip()
         if text:
-            # Zeit abfangen. Wenn nichts eingetragen wurde, nehmen wir 0
-            zeit = dauern[i] if i < len(dauern) and dauern[i] else "0"
+            # Wir entfernen unsichtbare Leerzeichen mit .strip() zur Sicherheit
+            zeit = dauern[i].strip() if i < len(dauern) and dauern[i].strip() else "0"
             gesamt_dauer += int(zeit)
-            # Format speichern: Zeit:::Text
             schritte_liste.append(f"{zeit}:::{text}")
             
     anleitung_text = "|||".join(schritte_liste)
 
-    # NEU: Die Listen der dynamischen Felder abfangen
+    # --- Zutaten ---
     mengen = request.form.getlist('zutaten_menge[]')
     einheiten = request.form.getlist('zutaten_einheit[]')
     namen = request.form.getlist('zutaten_name[]')
 
-    # Wir bauen die Zutaten zu einem strukturierten Text zusammen.
-    # Beispiel: "250|g|Mehl" pro Zeile
     zutaten_liste = []
     for i in range(len(namen)):
-        if namen[i].strip(): # Nur speichern, wenn der Name nicht leer ist
-            menge = mengen[i] if mengen[i] else ""
-            einheit = einheiten[i] if einheiten[i] else ""
-            # Wir trennen Menge, Einheit und Name mit einem senkrechten Strich |
+        if namen[i].strip():
+            menge = mengen[i].strip() if mengen[i] else ""
+            einheit = einheiten[i].strip() if einheiten[i] else ""
             zutaten_liste.append(f"{menge}|{einheit}|{namen[i]}")
     
-    # Alle Zutaten-Zeilen werden mit einem echten Zeilenumbruch (\n) verbunden
     zutaten_text = "\n".join(zutaten_liste)
 
-    
+    # --- Datenbank Speichern ---
     conn = get_db_connection()
     conn.execute('''
         INSERT INTO rezepte (titel, dauer, kategorie, zutaten, anleitung, portionen)
@@ -203,20 +196,19 @@ def bearbeiten(id):
     # Wir übergeben das gefundene Rezept an ein neues HTML-Template
     return render_template('bearbeiten.html', rezept=rezept)
 
-# ROUTE 5: Die korrigierten Daten in der Datenbank überschreiben
+
+# ROUTE 5: Die korrigierten Daten in der Datenbank überschreiben (Bearbeiten)
 @app.route('/aktualisieren/<int:id>', methods=['POST'])
 def aktualisieren(id):
     titel = request.form['titel']
     portionen = request.form.get('portionen', 1)
-
-    # Die Liste der Kategorien abfangen
-    kategorien = request.form.getlist('kategorie[]')
     
-    # Leere Felder ignorieren und mit Komma getrennt zusammenkleben
+    # --- Kategorien ---
+    kategorien = request.form.getlist('kategorie[]')
     kategorien_liste = [k.strip() for k in kategorien if k.strip()]
     kategorie_text = ", ".join(kategorien_liste)
 
-    # Die Liste der Schritte UND Dauern abfangen
+    # --- Zubereitung & Zeiten ---
     schritte = request.form.getlist('anleitung_schritt[]')
     dauern = request.form.getlist('anleitung_dauer[]')
     
@@ -226,30 +218,29 @@ def aktualisieren(id):
     for i in range(len(schritte)):
         text = schritte[i].strip()
         if text:
-            # Zeit abfangen. Wenn nichts eingetragen wurde, nehmen wir 0
-            zeit = dauern[i] if i < len(dauern) and dauern[i] else "0"
+            zeit = dauern[i].strip() if i < len(dauern) and dauern[i].strip() else "0"
             gesamt_dauer += int(zeit)
-            # Format speichern: Zeit:::Text
             schritte_liste.append(f"{zeit}:::{text}")
             
     anleitung_text = "|||".join(schritte_liste)
 
-    # NEU: Auch beim Bearbeiten die Listen der Zutaten abfangen
+    # --- Zutaten ---
     mengen = request.form.getlist('zutaten_menge[]')
     einheiten = request.form.getlist('zutaten_einheit[]')
     namen = request.form.getlist('zutaten_name[]')
 
-    # Zutaten wieder zu einem Text zusammenbauen
     zutaten_liste = []
     for i in range(len(namen)):
         if namen[i].strip():
-            menge = mengen[i] if mengen[i] else ""
-            einheit = einheiten[i] if einheiten[i] else ""
+            menge = mengen[i].strip() if mengen[i] else ""
+            einheit = einheiten[i].strip() if einheiten[i] else ""
             zutaten_liste.append(f"{menge}|{einheit}|{namen[i]}")
     
     zutaten_text = "\n".join(zutaten_liste)
 
+    # --- Datenbank Update ---
     conn = get_db_connection()
+    # Hier war der Fehler: Richtige Spaltennamen (ohne _text) und gesamt_dauer eingefügt!
     conn.execute('''
         UPDATE rezepte
         SET titel = ?, dauer = ?, kategorie = ?, zutaten = ?, anleitung = ?, portionen = ?
