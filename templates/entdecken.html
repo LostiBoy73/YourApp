@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rezepte entdecken</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        /* Spezielles Design für die API-Rezeptkarten */
+        .api-card {
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .api-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-bottom: 1px solid var(--pico-muted-border-color);
+        }
+        .api-content {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        .api-content h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <nav>
+            <ul>
+                <li><strong>👨‍🍳 Berufsschul-Koch-App</strong></li>
+            </ul>
+            <ul>
+                <li><a href="/" class="outline">🏠 Menü</a></li>
+            </ul>
+        </nav>
+
+        <h1 style="margin-bottom: 0.5rem;">🌍 Neue Rezepte entdecken</h1>
+        <p style="color: var(--pico-muted-color); margin-bottom: 2rem;">
+            Suche in einer riesigen Online-Datenbank nach neuen Ideen und importiere sie mit einem Klick in deine eigene Sammlung.
+        </p>
+
+        <form action="/entdecken" method="GET" style="margin-bottom: 3rem;">
+            <fieldset role="group">
+                <input type="text" name="suche" value="{{ aktuelle_suche }}" placeholder="Zutat / Gericht auf Englisch (z.B. Chicken, Pasta, Cake...)" required>
+                <button type="submit">🔍 Suchen</button>
+            </fieldset>
+        </form>
+
+        <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+            {% if rezepte %}
+                {% for rezept in rezepte %}
+                    <article class="api-card">
+                        <img src="{{ rezept['strMealThumb'] }}" alt="{{ rezept['strMeal'] }}">
+                        
+                        <div class="api-content">
+                            <h3>{{ rezept['strMeal'] }}</h3>
+                            <p style="color: var(--pico-muted-color); margin-bottom: 1.5rem; flex-grow: 1;">
+                                🏷️ {{ rezept['strCategory'] }}<br>
+                                🌍 {{ rezept['strArea'] }}
+                            </p>
+                            
+                            <form action="/importieren/{{ rezept['idMeal'] }}" method="POST" style="margin: 0;">
+                                <button type="submit" class="secondary" style="width: 100%;">📥 In meine App importieren</button>
+                            </form>
+                        </div>
+                    </article>
+                {% endfor %}
+            {% else %}
+                <div style="grid-column: 1 / -1; text-align: center; margin-top: 2rem;">
+                    <h3 style="color: var(--pico-muted-color);">Leider nichts gefunden 😕</h3>
+                    <p>Für "<strong>{{ aktuelle_suche }}</strong>" gab es keine Treffer.<br>
+                    <em>Tipp: Da wir eine englische Datenbank nutzen, musst du auf Englisch suchen!</em></p>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+</body>
+</html>
+

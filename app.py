@@ -448,6 +448,74 @@ def import_starten():
     # So kann er die importierten Zutaten überprüfen und ggf. kleine Fehler des Scrapers sofort korrigieren.
     return redirect(url_for('bearbeiten', id=neue_id))
 
+# ROUTE 13: Entdecken-Seite (Zufällige Rezepte von der API laden)
+@app.route('/entdecken')
+def entdecken():
+    # Standardmäßig laden wir Rezepte mit 'c' (Chicken, Cake etc.)
+    suchbegriff = request.args.get('suche', 'c')
+    api_url = f"https://www.themealdb.com/api/json/v1/1/search.php?s={suchbegriff}"
+    
+    try:
+        import requests
+        response = requests.get(api_url)
+        data = response.json()
+        api_rezepte = data.get('meals', [])
+    except Exception as e:
+        print(f"Fehler bei der API: {e}")
+        api_rezepte = []
+
+    return render_template('entdecken.html', rezepte=api_rezepte, aktuelle_suche=suchbegriff)
+
+
+# ROUTE 14: Ein API-Rezept in die eigene Datenbank importieren
+@app.route('/importieren/<api_id>', methods=['POST'])
+def importieren_api_rezept(api_id):
+    import requests
+    # 1. Rezept-Details von der API abfragen
+    api_url = f"https://www.themealdb.com/api/json/v1/1/lookup.php?i={api_id}"
+    response = requests.get(api_url)
+    data = response.json()
+    
+    if not data.get('meals'):
+        return redirect(url_for('entdecken'))
+        
+    meal = data['meals'][0]
+
+    # 2. Daten für deine Datenbank umwandeln
+    titel = meal.get('strMeal', 'Unbekanntes Rezept')
+    kategorie = meal.get('strCategory', 'Importiert')
+    gesamt_dauer = 30  # Standardwert, da TheMealDB keine Dauer liefert
+
+    # Zutaten verarbeiten
+    zutaten_liste = []
+    for i in range(1, 21):
+        zutat = meal.get(f'strIngredient{i}')
+        menge_einheit = meal.get(f'strMeasure{i}')
+        
+        if zutat and zutat.strip():
+            m = menge_einheit.strip() if menge_einheit else ""
+            # Format: menge|einheit|name (Einheit hier leer gelassen, da API das nicht trennt)
+            zutaten_liste.append(f"{m}||{zutat.strip()}")
+            
+    zutaten_text = "\n".join(zutaten_liste)
+
+    # Anleitung verarbeiten
+    anleitung_raw = meal.get('strInstructions', '')
+    schritte = [s.strip() for s in anleitung_raw.split('\n') if s.strip()]
+    schritte_liste = [f"0:::{schritt}" for schritt in schritte]
+    anleitung_text = "|||".join(schritte_liste)
+
+    # 3. In die lokale Datenbank speichern
+    conn = get_db_connection()
+    conn.execute('''
+        INSERT INTO rezepte (titel, dauer, kategorie, zutaten, anleitung)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (titel, gesamt_dauer, kategorie, zutaten_text, anleitung_text))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('rezepte'))
+
 if __name__ == '__main__':
     # Starte den Server im Debug-Modus (er startet bei Änderungen automatisch neu)
     app.run(debug=True)
