@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Einkaufsliste</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        /* Wenn eine Checkbox angeklickt ist, streichen wir den Text durch */
+        input[type="checkbox"]:checked + span {
+            text-decoration: line-through;
+            color: var(--pico-muted-color);
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <nav>
+            <ul>
+                <li><strong>👨‍🍳 Berufsschul-Koch-App</strong></li>
+            </ul>
+            <ul>
+                <li><a href="./index.html" class="outline">🏠 Menü</a></li>
+            </ul>
+        </nav>
+
+        <h1 style="margin-bottom: 2rem;">🛒 Einkaufsliste</h1>
+
+        <div class="grid">
+            <div>
+                <article style="padding: 1rem;">
+                    <h3 style="margin-bottom: 1rem; font-size: 1.2rem;">Enthaltene Rezepte</h3>
+                    
+                    <!-- Container für die Rezepte-Liste -->
+                    <ul id="einkauf-rezepte" style="list-style-type: none; padding-left: 0;">
+                        <p style="color: var(--pico-muted-color);">Lade Rezepte...</p>
+                    </ul>
+                </article>
+            </div>
+
+            <div>
+                <h3>Zutaten</h3>
+                
+                <!-- Container für die Zutaten-Liste -->
+                <ul id="einkauf-zutaten" style="list-style-type: none; padding-left: 0;">
+                    <p style="color: var(--pico-muted-color);">Lade Zutaten...</p>
+                </ul>
+
+                <!-- Container für manuelle Einträge (wird durch JS ein/ausgeblendet) -->
+                <div id="manuell-header" style="display: none;">
+                    <hr>
+                    <h4 style="font-size: 1.1rem;">Zusätzliches (Manuell)</h4>
+                </div>
+                <ul id="einkauf-manuell" style="list-style-type: none; padding-left: 0;"></ul>
+
+                <!-- Formular für neue manuelle Einträge (JS fängt das ab) -->
+                <form id="form-einkauf-manuell" style="margin-top: 1.5rem; display: flex; gap: 10px;">
+                    <input type="text" id="manuell-input" placeholder="z.B. Cola, Küchenrolle..." required style="margin-bottom: 0; flex-grow: 1;">
+                    <button type="submit" style="margin-bottom: 0; white-space: nowrap;">➕ Hinzufügen</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Unser schlaues JavaScript laden -->
+    <script src="./static/script.js"></script>
+</body>
+</html>

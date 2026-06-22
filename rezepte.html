@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meine Rezepte</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        .badge { display: inline-block; background: var(--pico-form-element-background-color); border: 1px solid var(--pico-muted-border-color); padding: 0.1rem 0.5rem; border-radius: 15px; font-size: 0.8rem; margin-right: 0.3rem; margin-bottom: 0.3rem; }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <nav>
+            <ul>
+                <li><strong>👨‍🍳 Berufsschul-Koch-App</strong></li>
+            </ul>
+            <ul>
+                <li><a href="./index.html" class="outline">🏠 Menü</a></li>
+                <li><a href="./neues_rezept.html?von=rezepte" role="button">Rezept hinzufügen</a></li>
+            </ul>
+        </nav>
+
+        <h2>Meine Rezepte</h2>
+
+        <!-- Das Formular sendet GET-Parameter an rezepte.html, JS liest sie aus -->
+        <form method="GET" action="./rezepte.html" style="background: var(--pico-card-background-color); padding: 1rem; border-radius: 10px; border: 1px solid var(--pico-muted-border-color); margin-bottom: 2rem;">
+            <div class="grid">
+                <input type="search" id="suche-input" name="suche" placeholder="Rezeptname (z.B. Pizza)" style="margin-bottom: 1rem;">
+                
+                <select id="kategorie-select" name="kategorie" style="margin-bottom: 1rem;">
+                    <option value="">Alle Kategorien</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" style="margin-bottom: 0; flex-grow: 1;">🔍 Filtern & Suchen</button>
+                <a href="./rezepte.html" role="button" class="secondary outline" style="margin-bottom: 0;">❌ Zurücksetzen</a>
+            </div>
+        </form>
+        
+        <!-- Hier werden die Rezepte vom JavaScript eingefügt -->
+        <div id="recipe-list-container" class="grid">
+            <p style="text-align: center; width: 100%;">Lade Rezepte...</p>
+        </div>
+    </main>
+
+    <script src="./static/script.js"></script>
+</body>
+</html>

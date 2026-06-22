@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neues Rezept</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+</head>
+<body>
+    <main class="container">
+        <nav>
+            <ul>
+                <li><strong>👨‍🍳 Berufsschul-Koch-App</strong></li>
+            </ul>
+            <ul>
+                <li><a href="./rezepte.html" class="outline">🔙 Zurück zu Rezepten</a></li>
+            </ul>
+        </nav>
+
+        <h2>Neues Rezept eintragen</h2>
+        
+        <!-- ID für JavaScript-Zugriff, action/method entfernt -->
+        <form id="form-neues-rezept">
+            <div class="grid">
+                <div style="flex-grow: 3;">
+                    <label for="titel">Rezeptname</label>
+                    <input type="text" id="titel" name="titel" placeholder="z.B. Käsespätzle" required>
+                </div>
+                <div>
+                    <label for="portionen">Portionen</label>
+                    <input type="number" id="portionen" name="portionen" value="2" min="1" required>
+                </div>
+            </div>
+
+            <label>Kategorien (Tags)</label>
+            <div id="kategorie-container">
+                <div style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: center;">
+                    <input type="text" name="kategorie[]" placeholder="z.B. Vegetarisch" required style="margin-bottom:0; flex-grow: 1;">
+                    <button type="button" class="outline" onclick="removeZeile(this)" style="margin-bottom: 0; padding: 0 15px;" title="Entfernen">🗑️</button>
+                </div>
+            </div>
+            <button type="button" class="secondary outline" onclick="addKategorieZeile()" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; margin-top: 0.5rem; margin-bottom: 2rem;">➕ Kategorie hinzufügen</button>
+
+            <label>Zutaten</label>
+            <div id="zutaten-container">
+                <div class="grid" style="margin-bottom: 0.5rem; align-items: center;">
+                    <input type="number" name="zutaten_menge[]" placeholder="Menge" style="margin-bottom:0;">
+                    <input type="text" name="zutaten_einheit[]" placeholder="Einheit" style="margin-bottom:0;">
+                    <input type="text" name="zutaten_name[]" placeholder="Zutat" required style="margin-bottom:0;">
+                    <button type="button" class="outline" onclick="removeZeile(this)" style="margin-bottom: 0;" title="Entfernen">🗑️</button>
+                </div>
+            </div>
+            <button type="button" class="secondary outline" onclick="addZutatZeile()" style="margin-bottom: 2rem;">➕ Zutat hinzufügen</button>
+
+            <label>Zubereitung (Schritt für Schritt)</label>
+            <div id="schritte-container">
+                <div style="margin-bottom: 0.5rem; display: flex; gap: 10px; align-items: start;">
+                    <input type="number" name="anleitung_dauer[]" placeholder="Min." style="width: 80px; margin-bottom: 0;">
+                    <textarea name="anleitung_schritt[]" placeholder="Schritt 1: Zwiebeln fein würfeln..." rows="2" required style="margin-bottom:0; flex-grow: 1;"></textarea>
+                    <button type="button" class="outline" onclick="removeZeile(this)" style="margin-bottom: 0; padding: 0 15px;" title="Entfernen">🗑️</button>
+                </div>
+            </div>
+            <button type="button" class="secondary outline" onclick="addSchrittZeile()" style="margin-bottom: 2rem;">➕ Schritt hinzufügen</button>
+           
+            <button type="submit">Rezept speichern</button>
+        </form>
+    </main>
+
+    <script src="./static/script.js"></script>
+</body>
+</html>
