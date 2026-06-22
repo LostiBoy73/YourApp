@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rezept importieren</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+</head>
+<body>
+    <main class="container">
+        <nav>
+            <ul>
+                <li><strong>👨‍🍳 Berufsschul-Koch-App</strong></li>
+            </ul>
+            <ul>
+                <li><a href="/" class="outline">🔙 Zurück zum Menü</a></li>
+            </ul>
+        </nav>
+
+        <h2>Chefkoch-Rezept importieren</h2>
+        <p style="color: var(--pico-muted-color);">Kopiere den Link eines Chefkoch-Rezepts und füge ihn hier ein. Wir versuchen, alle Daten (Zutaten, Anleitung, Zeiten) automatisch in unsere App zu übertragen.</p>
+        
+        <form action="/import_starten" method="POST" style="margin-top: 2rem;">
+            <label for="url">Chefkoch URL (Link)</label>
+            <input type="url" id="url" name="url" placeholder="https://www.chefkoch.de/rezepte/..." required>
+            
+            <button type="submit" onclick="this.innerHTML='⏳ Importiere, bitte warten...';">📥 Rezept jetzt importieren</button>
+        </form>
+
+        {% if error %}
+            <article style="background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; padding: 1rem; margin-top: 1rem;">
+                <strong style="color: #721c24;">❌ Fehler:</strong> <span style="color: #721c24;">{{ error }}</span>
+            </article>
+        {% endif %}
+
+    </main>
+</body>
+</html>

@@ -403,6 +403,13 @@ def einkaufsliste_entfernen_manuell(id):
     conn.close()
     return redirect(url_for('einkaufsliste'))
 
+# ROUTE: Die Import-Seite anzeigen
+@app.route('/importieren')
+def importieren():
+    # Falls wir mit einem Fehler zurückgeleitet wurden, fangen wir ihn ab
+    error = request.args.get('error')
+    return render_template('import.html', error=error)
+
 if __name__ == '__main__':
     # Starte den Server im Debug-Modus (er startet bei Änderungen automatisch neu)
     app.run(debug=True)
