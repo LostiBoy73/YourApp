@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <link rel="stylesheet" href="./static/app.css">
-    <title>Rezept importieren</title>
+    <title>Öffentliche Rezepte</title>
 </head>
 <body>
     <main class="container">
@@ -18,26 +18,22 @@
                 <span class="brand-mark">YA</span>
                 <span>YourApp Rezepte</span>
             </a>
-            <div class="nav-links"><a class="" href="./index.html">Start</a><a class="" href="./rezepte.html">Meine Rezepte</a><a class="" href="./community.html">Öffentlich</a><a class="" href="./neues_rezept.html">Neu</a><a class="" href="./einkaufsliste.html">Einkauf</a><a class="active" href="./import.html">Import</a><a class="" href="./entdecken.html">Entdecken</a></div>
+            <div class="nav-links"><a class="" href="./index.html">Start</a><a class="" href="./rezepte.html">Meine Rezepte</a><a class="active" href="./community.html">Öffentlich</a><a class="" href="./neues_rezept.html">Neu</a><a class="" href="./einkaufsliste.html">Einkauf</a><a class="" href="./import.html">Import</a><a class="" href="./entdecken.html">Entdecken</a></div>
         </header>
 
         <div id="current-user" class="user-bar"></div>
 
         <section class="page-header">
             <div>
-                <span class="pill">Import</span>
-                <h1>Rezept importieren</h1>
-                <p>Importierte Rezepte werden zuerst deinem privaten Bereich zugeordnet. Danach kannst du sie bearbeiten und optional veröffentlichen.</p>
+                <span class="pill">Community</span>
+                <h1>Öffentliche Rezepte</h1>
+                <p>Rezepte, die von Nutzern bewusst veröffentlicht wurden. Fremde Rezepte können angesehen und zur Einkaufsliste hinzugefügt werden.</p>
             </div>
+            <a href="./neues_rezept.html" role="button">Eigenes Rezept teilen</a>
         </section>
 
-        <section class="panel form-panel">
-            <form id="form-import-chefkoch">
-                <label for="url">Chefkoch-Link</label>
-                <input id="url" name="url" type="url" placeholder="https://www.chefkoch.de/rezepte/..." required>
-                <button type="submit">Rezept importieren</button>
-            </form>
-            <p id="import-message" style="display:none; margin-top:1rem;"></p>
+        <section id="public-recipe-list-container" class="recipe-list" aria-live="polite">
+            <p class="empty-note">Lade öffentliche Rezepte...</p>
         </section>
     </main>
     <script src="./static/script.js"></script>

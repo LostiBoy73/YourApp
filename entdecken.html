@@ -1,74 +1,56 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <link rel="manifest" href="/manifest.json">
-
-    <link rel="apple-touch-icon" href="/static/icon-192.png">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./static/icon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rezepte entdecken</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <style>
-        /* Spezielles Design für die API-Rezeptkarten */
-        .api-card {
-            padding: 0;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .api-card img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-bottom: 1px solid var(--pico-muted-border-color);
-        }
-        .api-content {
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-        }
-        .api-content h3 {
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-        }
-    </style>
+    <link rel="stylesheet" href="./static/app.css">
+    <title>Extern entdecken</title>
 </head>
 <body>
     <main class="container">
-        <nav>
-            <ul>
-                <li><strong>👨‍🍳 Berufsschul-Koch-App</strong></li>
-            </ul>
-            <div id="current-user"></div>
-            <ul>
-                <li><a href="./index.html" class="outline">🏠 Menü</a></li>
-            </ul>
-        </nav>
+        <header class="app-nav">
+            <a class="brand" href="./index.html" aria-label="Zur Startseite">
+                <span class="brand-mark">YA</span>
+                <span>YourApp Rezepte</span>
+            </a>
+            <div class="nav-links"><a class="" href="./index.html">Start</a><a class="" href="./rezepte.html">Meine Rezepte</a><a class="" href="./community.html">Öffentlich</a><a class="" href="./neues_rezept.html">Neu</a><a class="" href="./einkaufsliste.html">Einkauf</a><a class="" href="./import.html">Import</a><a class="active" href="./entdecken.html">Entdecken</a></div>
+        </header>
 
-        <h1 style="margin-bottom: 0.5rem;">🌍 Neue Rezepte entdecken</h1>
-        <p style="color: var(--pico-muted-color); margin-bottom: 2rem;">
-            Suche in einer riesigen Online-Datenbank nach neuen Ideen und importiere sie mit einem Klick in deine eigene Sammlung.
-        </p>
+        <div id="current-user" class="user-bar"></div>
 
-        <!-- Formular lädt einfach die Seite mit ?suche=... neu, JS übernimmt dann -->
-        <form action="./entdecken.html" method="GET" style="margin-bottom: 3rem;">
-            <fieldset role="group">
-                <input type="text" id="entdecken-suche-input" name="suche" placeholder="Zutat / Gericht auf Englisch (z.B. Chicken, Pasta, Cake...)" required>
-                <button type="submit">🔍 Suchen</button>
-            </fieldset>
-        </form>
+        <section class="page-header">
+            <div>
+                <span class="pill">TheMealDB</span>
+                <h1>Extern entdecken</h1>
+                <p>Suche externe Rezeptideen und importiere sie in deinen privaten Bereich.</p>
+            </div>
+        </section>
 
-        <!-- Container für die API-Karten -->
-        <div id="entdecken-container" class="grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
-            <p style="text-align: center; width: 100%; grid-column: 1 / -1; color: var(--pico-muted-color);">Lade Rezepte...</p>
-        </div>
+        <section class="panel filter-panel">
+            <form method="get" action="./entdecken.html">
+                <div class="filter-actions">
+                    <input id="entdecken-suche-input" name="suche" type="search" placeholder="Englisch suchen, z. B. pasta, curry, cake">
+                    <button type="submit">Suchen</button>
+                </div>
+            </form>
+        </section>
+
+        <section id="entdecken-container" class="api-grid" aria-live="polite">
+            <p class="empty-note">Lade externe Rezepte...</p>
+        </section>
     </main>
-
-    <!-- Unser schlaues JavaScript laden -->
     <script src="./static/script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js');
+            });
+        }
+    </script>
 </body>
 </html>
