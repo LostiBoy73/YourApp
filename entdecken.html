@@ -1,56 +1,45 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <link rel="manifest" href="./manifest.json">
-    <link rel="apple-touch-icon" href="./static/icon-192.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="./static/app.css">
-    <title>Extern entdecken</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./static/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="./static/app.css">
+  <title>Entdecken · KochFlow</title>
 </head>
 <body>
-    <main class="container">
-        <header class="app-nav">
-            <a class="brand" href="./index.html" aria-label="Zur Startseite">
-                <span class="brand-mark">YA</span>
-                <span>YourApp Rezepte</span>
-            </a>
-            <div class="nav-links"><a class="" href="./index.html">Start</a><a class="" href="./rezepte.html">Meine Rezepte</a><a class="" href="./community.html">Öffentlich</a><a class="" href="./neues_rezept.html">Neu</a><a class="" href="./einkaufsliste.html">Einkauf</a><a class="" href="./import.html">Import</a><a class="active" href="./entdecken.html">Entdecken</a></div>
-        </header>
+  <main class="container">
+<header class="app-nav">
+  <a class="brand" href="./index.html" aria-label="Zur Startseite">
+    <span class="brand-mark">KF</span>
+    <span>KochFlow</span>
+  </a>
+  <div class="nav-links">
+    <a data-icon="⌂" class="" href="./index.html">Start</a>
+    <a data-icon="▤" class="" href="./rezepte.html">Rezepte</a>
+    <a data-icon="＋" class="" href="./neues_rezept.html">Neu</a>
+    <a data-icon="○" class="" href="./community.html">Öffentlich</a>
+    <a data-icon="✓" class="" href="./einkaufsliste.html">Einkauf</a>
+    <a data-icon="↧" class="" href="./import.html">Import</a>
+    <a data-icon="⌕" class="active" href="./entdecken.html">Entdecken</a>
+  </div>
+</header>
+<div id="current-user" class="user-bar"></div>
 
-        <div id="current-user" class="user-bar"></div>
+<section class="page-header"><div><span class="pill">Ideen</span><h1>Entdecken</h1><p>Suche externe Rezeptideen und importiere passende Treffer.</p></div></section>
+<section class="panel filter-panel"><form method="get" action="./entdecken.html"><div class="filter-actions"><input id="entdecken-suche-input" name="suche" type="search" placeholder="z.B. pasta, curry, salad"><button type="submit">Suchen</button></div></form></section>
+<section id="entdecken-container" class="api-grid"></section>
 
-        <section class="page-header">
-            <div>
-                <span class="pill">TheMealDB</span>
-                <h1>Extern entdecken</h1>
-                <p>Suche externe Rezeptideen und importiere sie in deinen privaten Bereich.</p>
-            </div>
-        </section>
-
-        <section class="panel filter-panel">
-            <form method="get" action="./entdecken.html">
-                <div class="filter-actions">
-                    <input id="entdecken-suche-input" name="suche" type="search" placeholder="Englisch suchen, z. B. pasta, curry, cake">
-                    <button type="submit">Suchen</button>
-                </div>
-            </form>
-        </section>
-
-        <section id="entdecken-container" class="api-grid" aria-live="polite">
-            <p class="empty-note">Lade externe Rezepte...</p>
-        </section>
-    </main>
-    <script src="./static/script.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js');
-            });
-        }
-    </script>
+  </main>
+  <script src="./static/script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+    }
+  </script>
 </body>
 </html>

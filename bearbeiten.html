@@ -1,100 +1,50 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <link rel="manifest" href="./manifest.json">
-    <link rel="apple-touch-icon" href="./static/icon-192.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="./static/app.css">
-    <title>Rezept bearbeiten</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./static/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="./static/app.css">
+  <title>Rezept bearbeiten · KochFlow</title>
 </head>
 <body>
-    <main class="container">
-        <header class="app-nav">
-            <a class="brand" href="./index.html" aria-label="Zur Startseite">
-                <span class="brand-mark">YA</span>
-                <span>YourApp Rezepte</span>
-            </a>
-            <div class="nav-links"><a class="" href="./index.html">Start</a><a class="active" href="./rezepte.html">Meine Rezepte</a><a class="" href="./community.html">Öffentlich</a><a class="" href="./neues_rezept.html">Neu</a><a class="" href="./einkaufsliste.html">Einkauf</a><a class="" href="./import.html">Import</a><a class="" href="./entdecken.html">Entdecken</a></div>
-        </header>
+  <main class="container">
+<header class="app-nav">
+  <a class="brand" href="./index.html" aria-label="Zur Startseite">
+    <span class="brand-mark">KF</span>
+    <span>KochFlow</span>
+  </a>
+  <div class="nav-links">
+    <a data-icon="⌂" class="" href="./index.html">Start</a>
+    <a data-icon="▤" class="active" href="./rezepte.html">Rezepte</a>
+    <a data-icon="＋" class="" href="./neues_rezept.html">Neu</a>
+    <a data-icon="○" class="" href="./community.html">Öffentlich</a>
+    <a data-icon="✓" class="" href="./einkaufsliste.html">Einkauf</a>
+    <a data-icon="↧" class="" href="./import.html">Import</a>
+    <a data-icon="⌕" class="" href="./entdecken.html">Entdecken</a>
+  </div>
+</header>
+<div id="current-user" class="user-bar"></div>
 
-        <div id="current-user" class="user-bar"></div>
+<section class="page-header"><div><span class="pill">Bearbeiten</span><h1>Rezept anpassen</h1><p>Ändere Zutaten, Kategorien oder Kochschritte.</p></div></section>
+<form id="form-bearbeiten" class="form-panel">
+<div class="form-section"><h2>Grunddaten</h2><label>Titel<input id="titel" name="titel" required placeholder="z.B. Pasta mit Gemüse"></label><label>Portionen<input id="portionen" name="portionen" type="number" value="2" min="1"></label></div>
+<div class="form-section"><h2>Kategorien</h2><div id="kategorie-container"><div class="dynamic-row category-row"><input type="text" name="kategorie[]" placeholder="z.B. vegetarisch"><button type="button" class="outline" onclick="removeZeile(this)">Entfernen</button></div></div><button type="button" class="secondary" onclick="addKategorieZeile()">Kategorie hinzufügen</button></div>
+<div class="form-section"><h2>Zutaten</h2><div id="zutaten-container"><div class="dynamic-row"><input type="text" name="zutaten_menge[]" placeholder="Menge"><input type="text" name="zutaten_einheit[]" placeholder="Einheit"><input type="text" name="zutaten_name[]" placeholder="Zutat" required><button type="button" class="outline" onclick="removeZeile(this)">Entfernen</button></div></div><button type="button" class="secondary" onclick="addZutatZeile()">Zutat hinzufügen</button></div>
+<div class="form-section"><h2>Kochschritte</h2><div id="schritte-container"><div class="dynamic-row step-row"><input type="number" name="anleitung_dauer[]" placeholder="Min."><textarea name="anleitung_schritt[]" placeholder="Was ist zu tun?" required></textarea><button type="button" class="outline" onclick="removeZeile(this)">Entfernen</button></div></div><button type="button" class="secondary" onclick="addSchrittZeile()">Schritt hinzufügen</button></div>
+<div class="form-section"><label><input type="checkbox" name="is_public"> Rezept direkt öffentlich teilen</label></div>
+<button type="submit">Änderungen speichern</button></form>
 
-        <section class="page-header">
-            <div>
-                <span class="pill">Privates Rezept</span>
-                <h1>Rezept bearbeiten</h1>
-                <p>Alle Angaben werden deinem aktuellen Anzeigenamen zugeordnet. Über die Checkbox kannst du ein Rezept öffentlich teilen.</p>
-            </div>
-            <a href="./rezepte.html" role="button" class="secondary">Zurück zu meinen Rezepten</a>
-        </section>
-
-        <form id="form-bearbeiten" class="panel form-panel">
-            <section class="form-section">
-                <h2>Grunddaten</h2>
-                <label for="titel">Titel</label>
-                <input id="titel" name="titel" type="text" placeholder="z. B. Cremige Tomatenpasta" required>
-
-                <div class="filter-grid">
-                    <label>Portionen
-                        <input id="portionen" name="portionen" type="number" min="1" value="2" required>
-                    </label>
-                    <label>
-                        <input type="checkbox" name="is_public">
-                        Rezept öffentlich teilen
-                    </label>
-                </div>
-            </section>
-
-            <section class="form-section">
-                <h2>Kategorien</h2>
-                <div id="kategorie-container">
-                    <div class="dynamic-row category-row">
-                            <input type="text" name="kategorie[]" placeholder="z. B. Vegetarisch, Pasta, Schnell">
-                            <button type="button" class="secondary" onclick="removeZeile(this)">Entfernen</button>
-                        </div>
-                </div>
-                <button type="button" class="secondary" onclick="addKategorieZeile()">Kategorie hinzufügen</button>
-            </section>
-
-            <section class="form-section">
-                <h2>Zutaten</h2>
-                <div id="zutaten-container">
-                    <div class="dynamic-row">
-                            <input type="text" name="zutaten_menge[]" placeholder="Menge">
-                            <input type="text" name="zutaten_einheit[]" placeholder="Einheit">
-                            <input type="text" name="zutaten_name[]" placeholder="Zutat" required>
-                            <button type="button" class="secondary" onclick="removeZeile(this)">Entfernen</button>
-                        </div>
-                </div>
-                <button type="button" class="secondary" onclick="addZutatZeile()">Zutat hinzufügen</button>
-            </section>
-
-            <section class="form-section">
-                <h2>Zubereitungsschritte</h2>
-                <div id="schritte-container">
-                    <div class="dynamic-row step-row">
-                            <input type="number" name="anleitung_dauer[]" placeholder="Min.">
-                            <textarea name="anleitung_schritt[]" placeholder="Was ist zu tun?" required></textarea>
-                            <button type="button" class="secondary" onclick="removeZeile(this)">Entfernen</button>
-                        </div>
-                </div>
-                <button type="button" class="secondary" onclick="addSchrittZeile()">Schritt hinzufügen</button>
-            </section>
-
-            <button type="submit">Änderungen speichern</button>
-        </form>
-    </main>
-    <script src="./static/script.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js');
-            });
-        }
-    </script>
+  </main>
+  <script src="./static/script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+    }
+  </script>
 </body>
 </html>

@@ -9,7 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <link rel="stylesheet" href="./static/app.css">
-  <title>Wochenplan · KochFlow</title>
+  <title>Anmelden · KochFlow</title>
 </head>
 <body>
   <main class="container">
@@ -30,8 +30,27 @@
 </header>
 <div id="current-user" class="user-bar"></div>
 
-<section class="page-header"><div><span class="pill">Planung</span><h1>Wochenplan</h1><p>Diese Funktion ist als nächster Ausbau vorgesehen. Für die Demo bleibt der Fokus auf Rezepten, Kochmodus und Einkaufsliste.</p></div></section>
-<section class="menu-grid"><article class="menu-card"><span class="card-icon orange">Mo</span><h3>Montag</h3><p>Rezept auswählen</p></article><article class="menu-card"><span class="card-icon">Di</span><h3>Dienstag</h3><p>Rezept auswählen</p></article><article class="menu-card"><span class="card-icon blue">Mi</span><h3>Mittwoch</h3><p>Rezept auswählen</p></article></section>
+<section class="auth-card">
+  <span class="pill">Konto</span>
+  <h1 style="margin-top:.6rem;">Anmelden</h1>
+  <p style="color:var(--app-muted);">Private Rezepte sind an dein Konto gebunden. Öffentliche Rezepte kannst du auch ohne Konto ansehen.</p>
+  <div class="auth-tabs">
+    <button id="tab-login" type="button">Anmelden</button>
+    <button id="tab-register" class="secondary" type="button">Registrieren</button>
+  </div>
+  <p id="auth-message" class="empty-note" hidden></p>
+  <form id="form-login" class="auth-form">
+    <label>Benutzername<input id="login-username" required autocomplete="username"></label>
+    <label>Passwort<input id="login-password" type="password" required autocomplete="current-password"></label>
+    <button type="submit">Anmelden</button>
+  </form>
+  <form id="form-register" class="auth-form" hidden>
+    <label>Benutzername<input id="register-username" required autocomplete="username"></label>
+    <label>Passwort<input id="register-password" type="password" required autocomplete="new-password" minlength="4"></label>
+    <label>Passwort wiederholen<input id="register-password-repeat" type="password" required autocomplete="new-password" minlength="4"></label>
+    <button type="submit">Konto erstellen</button>
+  </form>
+</section>
 
   </main>
   <script src="./static/script.js"></script>

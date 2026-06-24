@@ -1,52 +1,44 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <link rel="manifest" href="./manifest.json">
-    <link rel="apple-touch-icon" href="./static/icon-192.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="./static/app.css">
-    <title>Rezept importieren</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./static/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="./static/app.css">
+  <title>Rezept importieren · KochFlow</title>
 </head>
 <body>
-    <main class="container">
-        <header class="app-nav">
-            <a class="brand" href="./index.html" aria-label="Zur Startseite">
-                <span class="brand-mark">YA</span>
-                <span>YourApp Rezepte</span>
-            </a>
-            <div class="nav-links"><a class="" href="./index.html">Start</a><a class="" href="./rezepte.html">Meine Rezepte</a><a class="" href="./community.html">Öffentlich</a><a class="" href="./neues_rezept.html">Neu</a><a class="" href="./einkaufsliste.html">Einkauf</a><a class="active" href="./import.html">Import</a><a class="" href="./entdecken.html">Entdecken</a></div>
-        </header>
+  <main class="container">
+<header class="app-nav">
+  <a class="brand" href="./index.html" aria-label="Zur Startseite">
+    <span class="brand-mark">KF</span>
+    <span>KochFlow</span>
+  </a>
+  <div class="nav-links">
+    <a data-icon="⌂" class="" href="./index.html">Start</a>
+    <a data-icon="▤" class="" href="./rezepte.html">Rezepte</a>
+    <a data-icon="＋" class="" href="./neues_rezept.html">Neu</a>
+    <a data-icon="○" class="" href="./community.html">Öffentlich</a>
+    <a data-icon="✓" class="" href="./einkaufsliste.html">Einkauf</a>
+    <a data-icon="↧" class="active" href="./import.html">Import</a>
+    <a data-icon="⌕" class="" href="./entdecken.html">Entdecken</a>
+  </div>
+</header>
+<div id="current-user" class="user-bar"></div>
 
-        <div id="current-user" class="user-bar"></div>
+<section class="page-header"><div><span class="pill">Import</span><h1>Rezept importieren</h1><p>Übernehme Rezepte in deinen privaten Bereich und passe sie danach an.</p></div></section>
+<section class="form-panel"><form id="form-import-chefkoch"><label>Chefkoch-Link<input id="url" name="url" type="url" placeholder="https://www.chefkoch.de/..." required></label><button type="submit">Rezept importieren</button></form><p id="import-message" class="empty-note" style="display:none;"></p></section>
 
-        <section class="page-header">
-            <div>
-                <span class="pill">Import</span>
-                <h1>Rezept importieren</h1>
-                <p>Importierte Rezepte werden zuerst deinem privaten Bereich zugeordnet. Danach kannst du sie bearbeiten und optional veröffentlichen.</p>
-            </div>
-        </section>
-
-        <section class="panel form-panel">
-            <form id="form-import-chefkoch">
-                <label for="url">Chefkoch-Link</label>
-                <input id="url" name="url" type="url" placeholder="https://www.chefkoch.de/rezepte/..." required>
-                <button type="submit">Rezept importieren</button>
-            </form>
-            <p id="import-message" style="display:none; margin-top:1rem;"></p>
-        </section>
-    </main>
-    <script src="./static/script.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js');
-            });
-        }
-    </script>
+  </main>
+  <script src="./static/script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+    }
+  </script>
 </body>
 </html>

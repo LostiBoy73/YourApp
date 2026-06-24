@@ -1,73 +1,49 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <link rel="manifest" href="./manifest.json">
-    <link rel="apple-touch-icon" href="./static/icon-192.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="./static/app.css">
-    <title>Rezeptdetails</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./static/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="./static/app.css">
+  <title>Rezept · KochFlow</title>
 </head>
 <body>
-    <main class="container">
-        <header class="app-nav">
-            <a class="brand" href="./index.html" aria-label="Zur Startseite">
-                <span class="brand-mark">YA</span>
-                <span>YourApp Rezepte</span>
-            </a>
-            <div class="nav-links"><a class="" href="./index.html">Start</a><a class="active" href="./rezepte.html">Meine Rezepte</a><a class="" href="./community.html">Öffentlich</a><a class="" href="./neues_rezept.html">Neu</a><a class="" href="./einkaufsliste.html">Einkauf</a><a class="" href="./import.html">Import</a><a class="" href="./entdecken.html">Entdecken</a></div>
-        </header>
+  <main class="container">
+<header class="app-nav">
+  <a class="brand" href="./index.html" aria-label="Zur Startseite">
+    <span class="brand-mark">KF</span>
+    <span>KochFlow</span>
+  </a>
+  <div class="nav-links">
+    <a data-icon="⌂" class="" href="./index.html">Start</a>
+    <a data-icon="▤" class="active" href="./rezepte.html">Rezepte</a>
+    <a data-icon="＋" class="" href="./neues_rezept.html">Neu</a>
+    <a data-icon="○" class="" href="./community.html">Öffentlich</a>
+    <a data-icon="✓" class="" href="./einkaufsliste.html">Einkauf</a>
+    <a data-icon="↧" class="" href="./import.html">Import</a>
+    <a data-icon="⌕" class="" href="./entdecken.html">Entdecken</a>
+  </div>
+</header>
+<div id="current-user" class="user-bar"></div>
 
-        <div id="current-user" class="user-bar"></div>
+<section id="detail-container">
+  <section class="page-header"><div><span id="detail-tags"></span><h1 id="detail-titel">Rezept</h1><p id="detail-owner"></p></div><div id="owner-controls" class="recipe-actions"><a id="btn-bearbeiten" class="card-action" href="#" onclick="this.href='./bearbeiten.html?id='+getQueryParam('id')">Bearbeiten</a><button class="outline" onclick="rezeptLoeschen()">Löschen</button><button id="btn-visibility" class="secondary" onclick="toggleRezeptVisibility()">Öffentlich teilen</button></div></section>
+  <section class="detail-layout">
+    <aside class="detail-panel"><h2>Zutaten</h2><label>Portionen<input id="portionen-rechner" type="number" min="1" onchange="portionenUmrechnen()"></label><ul id="detail-zutaten" class="ingredients-list"></ul><button id="btn-einkaufsliste" onclick="addRezeptToEinkaufsliste()">Zur Einkaufsliste hinzufügen</button></aside>
+    <section class="detail-panel"><h2>Kochmodus</h2><div id="detail-schritte"></div><div class="step-controls"><button id="btn-zurueck" class="secondary" onclick="vorherigerSchritt()">Zurück</button><button id="btn-weiter" onclick="naechsterSchritt()">Weiter</button></div></section>
+  </section>
+</section>
 
-        <section id="detail-container">
-            <div class="page-header">
-                <div>
-                    <span class="pill">Rezept</span>
-                    <h1 id="detail-titel">Rezept wird geladen...</h1>
-                    <p id="detail-owner"></p>
-                    <p id="detail-tags"></p>
-                </div>
-                <div class="owner-actions">
-                    <button id="btn-einkaufsliste" type="button" onclick="addRezeptToEinkaufsliste()">Zur Einkaufsliste hinzufügen</button>
-                    <button id="btn-visibility" type="button" class="secondary" onclick="toggleRezeptVisibility()">Öffentlich teilen</button>
-                </div>
-            </div>
-
-            <div class="detail-layout">
-                <aside class="panel detail-panel">
-                    <h2>Zutaten</h2>
-                    <label for="portionen-rechner">Portionen umrechnen</label>
-                    <input id="portionen-rechner" type="number" min="1" value="1" onchange="portionenUmrechnen()" oninput="portionenUmrechnen()">
-                    <ul id="detail-zutaten" class="ingredients-list"></ul>
-                </aside>
-
-                <section class="panel detail-panel">
-                    <h2>Kochmodus</h2>
-                    <div id="detail-schritte"></div>
-                    <div class="step-actions">
-                        <button id="btn-zurueck" type="button" class="secondary" onclick="vorherigerSchritt()">Zurück</button>
-                        <button id="btn-weiter" type="button" onclick="naechsterSchritt()">Weiter</button>
-                    </div>
-
-                    <div id="owner-controls" class="owner-actions">
-                        <a id="btn-bearbeiten" href="javascript:void(0)" role="button" class="secondary" onclick="window.location.href='./bearbeiten.html?id=' + getQueryParam('id')">Bearbeiten</a>
-                        <button type="button" class="danger" onclick="rezeptLoeschen()">Löschen</button>
-                    </div>
-                </section>
-            </div>
-        </section>
-    </main>
-    <script src="./static/script.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js');
-            });
-        }
-    </script>
+  </main>
+  <script src="./static/script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+    }
+  </script>
 </body>
 </html>

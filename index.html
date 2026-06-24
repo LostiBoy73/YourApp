@@ -1,85 +1,86 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <link rel="manifest" href="./manifest.json">
-    <link rel="apple-touch-icon" href="./static/icon-192.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="./static/app.css">
-    <title>YourApp Rezepte</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./static/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="./static/app.css">
+  <title>KochFlow – Rezepte planen und kochen</title>
 </head>
 <body>
-    <main class="container">
-        <header class="app-nav">
-            <a class="brand" href="./index.html" aria-label="Zur Startseite">
-                <span class="brand-mark">YA</span>
-                <span>YourApp Rezepte</span>
-            </a>
-            <div class="nav-links"><a class="active" href="./index.html">Start</a><a class="" href="./rezepte.html">Meine Rezepte</a><a class="" href="./community.html">Öffentlich</a><a class="" href="./neues_rezept.html">Neu</a><a class="" href="./einkaufsliste.html">Einkauf</a><a class="" href="./import.html">Import</a><a class="" href="./entdecken.html">Entdecken</a></div>
-        </header>
+  <main class="container">
+<header class="app-nav">
+  <a class="brand" href="./index.html" aria-label="Zur Startseite">
+    <span class="brand-mark">KF</span>
+    <span>KochFlow</span>
+  </a>
+  <div class="nav-links">
+    <a data-icon="⌂" class="active" href="./index.html">Start</a>
+    <a data-icon="▤" class="" href="./rezepte.html">Rezepte</a>
+    <a data-icon="＋" class="" href="./neues_rezept.html">Neu</a>
+    <a data-icon="○" class="" href="./community.html">Öffentlich</a>
+    <a data-icon="✓" class="" href="./einkaufsliste.html">Einkauf</a>
+    <a data-icon="↧" class="" href="./import.html">Import</a>
+    <a data-icon="⌕" class="" href="./entdecken.html">Entdecken</a>
+  </div>
+</header>
+<div id="current-user" class="user-bar"></div>
 
-        <div id="current-user" class="user-bar"></div>
+<section class="home-hero">
+  <div class="hero-main">
+    <span class="pill">Rezeptbuch · Kochmodus · Einkauf</span>
+    <h1>Kochen ohne Suchen.</h1>
+    <p>KochFlow sammelt deine Rezepte, führt dich Schritt für Schritt durch die Zubereitung und baut aus Rezepten direkt eine Einkaufsliste.</p>
+    <div class="hero-actions">
+      <a href="./neues_rezept.html" role="button">Rezept erstellen</a>
+      <a href="./rezepte.html" role="button" class="secondary">Meine Rezepte</a>
+    </div>
+  </div>
+  <aside class="hero-side">
+    <a class="quick-card panel" href="./rezepte.html">
+      <span class="card-icon lime">▤</span>
+      <div><h3>Direkt weiterkochen</h3><p>Öffne ein Rezept und starte die Schritt-für-Schritt-Ansicht.</p></div>
+    </a>
+    <a class="quick-card panel" href="./import.html">
+      <span class="card-icon orange">↧</span>
+      <div><h3>Rezept importieren</h3><p>Ideen aus externen Quellen übernehmen und danach anpassen.</p></div>
+    </a>
+    <a class="quick-card panel" href="./einkaufsliste.html">
+      <span class="card-icon blue">✓</span>
+      <div><h3>Einkauf vorbereiten</h3><p>Zutaten aus Rezepten sammeln und zusammenführen.</p></div>
+    </a>
+  </aside>
+</section>
 
-        <section class="hero">
-            <div class="hero-card">
-                <span class="pill">Prototyp für die Berufsschule</span>
-                <h1>Rezepte planen, kochen, teilen.</h1>
-                <p>Eine mobile Web-App für private Rezepte, öffentliche Rezeptideen, Einkaufsliste und Kochmodus. Ohne App-Installation, direkt im Browser.</p>
-                <div class="hero-actions">
-                    <a href="./neues_rezept.html?von=menue" role="button">Neues Rezept erstellen</a>
-                    <a href="./community.html" role="button" class="secondary">Öffentliche Rezepte ansehen</a>
-                </div>
-            </div>
-            <aside class="hero-aside panel">
-                <div>
-                    <span class="pill pill-muted">MVP Sprint 2/3</span>
-                    <h2 style="margin-top:.8rem;">Privat oder öffentlich</h2>
-                    <p style="color: var(--app-muted);">Rezepte gehören deinem Anzeigenamen. Du kannst sie privat halten oder im öffentlichen Bereich teilen.</p>
-                </div>
-                <div class="stat-row">
-                    <div class="stat-card"><strong>1</strong><span>Benutzerprofil light</span></div>
-                    <div class="stat-card"><strong>2</strong><span>Private & öffentliche Bereiche</span></div>
-                </div>
-            </aside>
-        </section>
+<section class="section-head">
+  <div><h2>Deine letzten Rezepte</h2><p>Schnell zurück zu dem, was du kochen willst.</p></div>
+  <a href="./rezepte.html" class="card-action">Alle ansehen</a>
+</section>
+<section id="home-my-recipes" class="preview-grid"><p class="empty-note">Lade deine Rezepte...</p></section>
 
-        <section class="menu-grid" aria-label="Hauptfunktionen">
-            <a href="./rezepte.html" class="menu-card">
-                <div><span class="menu-symbol">MR</span><h3>Meine Rezepte</h3></div>
-                <p>Private Rezepte anzeigen, bearbeiten und verwalten.</p>
-            </a>
-            <a href="./neues_rezept.html?von=menue" class="menu-card">
-                <div><span class="menu-symbol">+</span><h3>Neues Rezept</h3></div>
-                <p>Zutaten, Portionen, Kategorien und Schritte erfassen.</p>
-            </a>
-            <a href="./community.html" class="menu-card">
-                <div><span class="menu-symbol">CO</span><h3>Öffentliche Rezepte</h3></div>
-                <p>Rezepte ansehen, die andere Nutzer geteilt haben.</p>
-            </a>
-            <a href="./einkaufsliste.html" class="menu-card">
-                <div><span class="menu-symbol">EL</span><h3>Einkaufsliste</h3></div>
-                <p>Zutaten aus Rezepten sammeln und zusammenführen.</p>
-            </a>
-            <a href="./import.html" class="menu-card">
-                <div><span class="menu-symbol">IM</span><h3>Rezept importieren</h3></div>
-                <p>Chefkoch-Rezepte in deinen privaten Bereich übernehmen.</p>
-            </a>
-            <a href="./entdecken.html" class="menu-card">
-                <div><span class="menu-symbol">EX</span><h3>Extern entdecken</h3></div>
-                <p>Rezeptideen aus TheMealDB suchen und importieren.</p>
-            </a>
-        </section>
-    </main>
-    <script src="./static/script.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js');
-            });
-        }
-    </script>
+<section class="section-head">
+  <div><h2>Aus der Community</h2><p>Öffentlich geteilte Rezepte anderer Nutzer.</p></div>
+  <a href="./community.html" class="card-action">Öffentliche Rezepte</a>
+</section>
+<section id="home-public-recipes" class="preview-grid"><p class="empty-note">Lade öffentliche Rezepte...</p></section>
+
+<section class="section-head"><div><h2>Funktionen</h2><p>Die wichtigsten Wege sind direkt erreichbar.</p></div></section>
+<section class="menu-grid">
+  <a href="./neues_rezept.html" class="menu-card"><span class="card-icon">＋</span><div><h3>Rezept erstellen</h3><p>Zutaten, Mengen, Portionen und Schritte erfassen.</p></div></a>
+  <a href="./community.html" class="menu-card"><span class="card-icon blue">○</span><div><h3>Öffentlich teilen</h3><p>Eigene Rezepte freigeben und andere entdecken.</p></div></a>
+  <a href="./wochenplan.html" class="menu-card"><span class="card-icon orange">□</span><div><h3>Wochenplan</h3><p>Gerichte für die Woche vormerken.</p></div></a>
+</section>
+
+  </main>
+  <script src="./static/script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+    }
+  </script>
 </body>
 </html>

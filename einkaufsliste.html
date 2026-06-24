@@ -1,67 +1,47 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <link rel="manifest" href="./manifest.json">
-    <link rel="apple-touch-icon" href="./static/icon-192.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    <link rel="stylesheet" href="./static/app.css">
-    <title>Einkaufsliste</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./static/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="./static/app.css">
+  <title>Einkaufsliste · KochFlow</title>
 </head>
 <body>
-    <main class="container">
-        <header class="app-nav">
-            <a class="brand" href="./index.html" aria-label="Zur Startseite">
-                <span class="brand-mark">YA</span>
-                <span>YourApp Rezepte</span>
-            </a>
-            <div class="nav-links"><a class="" href="./index.html">Start</a><a class="" href="./rezepte.html">Meine Rezepte</a><a class="" href="./community.html">Öffentlich</a><a class="" href="./neues_rezept.html">Neu</a><a class="active" href="./einkaufsliste.html">Einkauf</a><a class="" href="./import.html">Import</a><a class="" href="./entdecken.html">Entdecken</a></div>
-        </header>
+  <main class="container">
+<header class="app-nav">
+  <a class="brand" href="./index.html" aria-label="Zur Startseite">
+    <span class="brand-mark">KF</span>
+    <span>KochFlow</span>
+  </a>
+  <div class="nav-links">
+    <a data-icon="⌂" class="" href="./index.html">Start</a>
+    <a data-icon="▤" class="" href="./rezepte.html">Rezepte</a>
+    <a data-icon="＋" class="" href="./neues_rezept.html">Neu</a>
+    <a data-icon="○" class="" href="./community.html">Öffentlich</a>
+    <a data-icon="✓" class="active" href="./einkaufsliste.html">Einkauf</a>
+    <a data-icon="↧" class="" href="./import.html">Import</a>
+    <a data-icon="⌕" class="" href="./entdecken.html">Entdecken</a>
+  </div>
+</header>
+<div id="current-user" class="user-bar"></div>
 
-        <div id="current-user" class="user-bar"></div>
+<section class="page-header"><div><span class="pill">Einkauf</span><h1>Einkaufsliste</h1><p>Zutaten aus deinen Rezepten werden zusammengefasst.</p></div></section>
+<section class="shopping-shell">
+  <aside class="form-panel"><h2>Rezepte</h2><ul id="einkauf-rezepte" class="shopping-list"></ul><h2 id="manuell-header" style="display:none;">Manuell</h2><ul id="einkauf-manuell" class="shopping-list"></ul><form id="form-einkauf-manuell"><input id="manuell-input" placeholder="Manuellen Eintrag hinzufügen"><button type="submit">Hinzufügen</button></form></aside>
+  <section class="form-panel"><h2>Zutaten</h2><ul id="einkauf-zutaten" class="shopping-list"></ul></section>
+</section>
 
-        <section class="page-header">
-            <div>
-                <span class="pill">Deine Liste</span>
-                <h1>Einkaufsliste</h1>
-                <p>Die Liste wird nach deinem Anzeigenamen getrennt gespeichert.</p>
-            </div>
-            <a href="./rezepte.html" role="button" class="secondary">Rezepte auswählen</a>
-        </section>
-
-        <section class="shopping-grid">
-            <aside class="panel detail-panel">
-                <h2>Hinzugefügte Rezepte</h2>
-                <ul id="einkauf-rezepte" class="shopping-list"></ul>
-            </aside>
-
-            <section class="panel detail-panel">
-                <h2>Zutaten</h2>
-                <ul id="einkauf-zutaten" class="shopping-list"></ul>
-
-                <h2 id="manuell-header" style="display:none; margin-top:1.5rem;">Manuell ergänzt</h2>
-                <ul id="einkauf-manuell" class="shopping-list"></ul>
-
-                <form id="form-einkauf-manuell" style="margin-top:1.25rem;">
-                    <label for="manuell-input">Manuellen Eintrag hinzufügen</label>
-                    <div class="filter-actions">
-                        <input id="manuell-input" name="name" type="text" placeholder="z. B. Backpapier" required>
-                        <button type="submit">Hinzufügen</button>
-                    </div>
-                </form>
-            </section>
-        </section>
-    </main>
-    <script src="./static/script.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js');
-            });
-        }
-    </script>
+  </main>
+  <script src="./static/script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+    }
+  </script>
 </body>
 </html>
