@@ -3,10 +3,7 @@
 // ==========================================
 // Für lokale Tests am PC (Lass das erstmal so stehen!)
 // Später, wenn der Pi läuft, änderst du das zu: 'https://api.robots-compliance.cc'
-const API_BASE_URL =
- window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-   ? "http://127.0.0.1:8000"
-   : "https://api.robots-compliance.cc";
+const API_BASE_URL = "https://api.robots-compliance.cc";
 
 
 // Hilfsfunktion: Parameter aus der URL lesen (z.B. ?id=5)
