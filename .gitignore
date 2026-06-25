@@ -28,3 +28,5 @@ env/
 # Editor/project settings
 .vscode/
 .idea/
+
+backend/rezepte.db

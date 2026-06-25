@@ -206,9 +206,36 @@ button.secondary, [role="button"].secondary, a.secondary { background: var(--app
   main.container { padding: .75rem .85rem 6.4rem; }
   .app-nav { position: fixed; left: .65rem; right: .65rem; bottom: .65rem; top: auto; z-index: 1000; margin: 0; padding: .45rem; border-radius: 1.35rem; box-shadow: 0 18px 44px rgba(0,0,0,.22); }
   .brand { display: none; }
-  .nav-links { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(4.7rem, 1fr); gap: .15rem; overflow-x: auto; width: 100%; scrollbar-width: none; }
-  .nav-links::-webkit-scrollbar { display: none; }
-  .nav-links a { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: .62rem .45rem; font-size: .72rem; white-space: nowrap; }
+  .nav-links { 
+    display: flex; 
+    flex-wrap: nowrap; /* Zwingt alle Elemente in eine einzige Zeile */
+    overflow-x: auto; /* Aktiviert das horizontale Scrollen */
+    -webkit-overflow-scrolling: touch; /* Sorgt für weiches Scrollen auf iPhones (iOS) */
+    gap: 0.15rem; 
+    width: 100%; 
+    scrollbar-width: none; /* Versteckt den Scrollbalken in Firefox */
+  }
+  
+  .nav-links::-webkit-scrollbar { 
+    display: none; /* Versteckt den Scrollbalken in Chrome/Safari */
+  }
+  
+  .nav-links a { 
+    flex: 0 0 auto; /* WICHTIG: Verhindert, dass die Buttons gequetscht werden */
+    min-width: 4.7rem; /* Sorgt dafür, dass jeder Button genug Platz hat */
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 0.62rem 0.45rem; 
+    font-size: 0.72rem; 
+    white-space: nowrap; 
+  }
+  
+  .nav-links a::before { 
+    font-size: 1.15rem; 
+    line-height: 1; 
+  }
   .nav-links a::before { font-size: 1.15rem; line-height: 1; }
   .user-bar { justify-content: center; margin-top: .35rem; }
   .hero-main h1 { font-size: clamp(2.8rem, 15vw, 4.4rem); }
