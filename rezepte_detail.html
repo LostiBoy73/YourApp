@@ -30,13 +30,53 @@
 </header>
 <div id="current-user" class="user-bar"></div>
 
-<section id="detail-container">
-  <section class="page-header"><div><span id="detail-tags"></span><h1 id="detail-titel">Rezept</h1><p id="detail-owner"></p></div><div id="owner-controls" class="recipe-actions"><a id="btn-bearbeiten" class="card-action" href="#" onclick="this.href='./bearbeiten.html?id='+getQueryParam('id')">Bearbeiten</a><button class="outline" onclick="rezeptLoeschen()">Löschen</button><button id="btn-visibility" class="secondary" onclick="toggleRezeptVisibility()">Öffentlich teilen</button></div></section>
-  <section class="detail-layout">
-    <aside class="detail-panel"><h2>Zutaten</h2><label>Portionen<input id="portionen-rechner" type="number" min="1" onchange="portionenUmrechnen()"></label><ul id="detail-zutaten" class="ingredients-list"></ul><button id="btn-einkaufsliste" onclick="addRezeptToEinkaufsliste()">Zur Einkaufsliste hinzufügen</button></aside>
-    <section class="detail-panel"><h2>Kochmodus</h2><div id="detail-schritte"></div><div class="step-controls"><button id="btn-zurueck" class="secondary" onclick="vorherigerSchritt()">Zurück</button><button id="btn-weiter" onclick="naechsterSchritt()">Weiter</button></div></section>
-  </section>
+<section class="page-header">
+  <div>
+    <div id="detail-tags" style="margin-bottom: .5rem;"></div>
+    <h1 id="detail-titel">Lade Rezept...</h1>
+    <p id="detail-owner"></p>
+  </div>
+  <div class="recipe-actions" id="owner-controls" style="display:none;">
+    <button id="btn-visibility" type="button" class="secondary" onclick="toggleRezeptVisibility()">Sichtbarkeit ändern</button>
+    <button type="button" class="outline" style="color:var(--app-danger)!important; border-color:var(--app-danger)!important;" onclick="rezeptLoeschen()">Löschen</button>
+  </div>
 </section>
+
+<div id="standard-ansicht" class="detail-layout">
+  <aside class="detail-panel">
+    <h2>Zutaten</h2>
+    <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem;">
+      <label style="margin: 0;">Für <input id="portionen-rechner" type="number" style="width: 4rem; display: inline-block; margin: 0 .2rem; padding: .2rem .5rem; min-height: auto;" onchange="portionenUmrechnen()" min="1"></label> Portionen
+    </div>
+    <ul id="detail-zutaten" class="ingredients-list"></ul>
+    
+    <div style="margin-top: 2rem;">
+      <button id="btn-einkaufsliste" type="button" class="secondary" style="width: 100%; margin-bottom: 0.5rem;" onclick="addRezeptToEinkaufsliste()">Zur Einkaufsliste hinzufügen</button>
+      <button onclick="startKochmodus()" class="primary-action" style="width: 100%; font-size: 1.1rem; padding: 0.8rem;">🍳 Rezept kochen</button>
+    </div>
+  </aside>
+
+  <section class="detail-panel">
+    <h2>Zubereitung</h2>
+    <div id="standard-schritte-liste"></div>
+  </section>
+</div>
+
+<div id="kochmodus-overlay" style="display: none;">
+  <button onclick="beendeKochmodus()" class="close-btn">✕ Abbrechen</button>
+  
+  <div class="koch-inhalt">
+    <div id="koch-zutaten-hinweis" style="margin-bottom: 1.5rem;"></div>
+    
+    <div id="koch-schritt-text" class="riesen-text"></div>
+  </div>
+
+  <div class="koch-controls">
+    <button id="btn-koch-zurueck" onclick="vorherigerSchritt()" class="riesen-button secondary">Zurück</button>
+    <div id="koch-fortschritt" class="fortschritt">Schritt 1 / 5</div>
+    <button id="btn-koch-weiter" onclick="naechsterSchritt()" class="riesen-button">Weiter</button>
+  </div>
+</div>
 
   </main>
   <script src="./static/script.js"></script>
