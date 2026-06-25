@@ -501,6 +501,123 @@ function vorherigerSchritt() {
   }
 }
 
+// ==========================================
+// EINKAUFSLISTE
+// ==========================================
+async function loadEinkaufsliste() {
+  const listRezepte = document.getElementById('einkauf-rezepte');
+  const listManuell = document.getElementById('einkauf-manuell');
+  const manuellHeader = document.getElementById('manuell-header');
+  
+  if (!listRezepte || !listManuell) return; 
+  if (!requireAuth()) return;
+
+  try {
+    const response = await apiFetch('/api/einkaufsliste');
+    if (!response.ok) throw new Error('API-Fehler');
+    const data = await response.json();
+    
+    listRezepte.innerHTML = '';
+    
+    // 1. Geplante Rezepte als kleine Badges/Tags anzeigen
+    if (data.rezepte && data.rezepte.length > 0) {
+      const rezepteBox = document.createElement('div');
+      rezepteBox.style.marginBottom = '1.5rem';
+      rezepteBox.innerHTML = '<p style="font-size: 0.85rem; color: var(--app-muted); margin-bottom: 0.5rem;">Geplante Rezepte:</p>';
+
+      data.rezepte.forEach(titel => {
+        const badge = document.createElement('span');
+        badge.className = 'pill'; 
+        badge.style.display = 'inline-flex';
+        badge.style.alignItems = 'center';
+        badge.style.gap = '0.5rem';
+        badge.style.margin = '0 0.5rem 0.5rem 0';
+        badge.style.background = 'var(--app-surface-3)';
+        
+        badge.innerHTML = `
+          ${escapeHTML(titel)}
+          <button onclick="removeRezeptFromEinkaufsliste('${escapeHTML(titel.replace(/'/g, "\\'"))}')" 
+                  style="background: transparent; border: none; color: var(--app-danger); padding: 0; cursor: pointer; font-weight: bold; margin:0; line-height: 1;">
+            ×
+          </button>
+        `;
+        rezepteBox.appendChild(badge);
+      });
+      listRezepte.appendChild(rezepteBox);
+
+      // 2. Die zusammengefassten Zutaten als einfache Liste rendern
+      data.zutaten.forEach(z => {
+        const li = document.createElement('li');
+        li.style.marginBottom = "0.25rem";
+        li.style.borderBottom = "1px dashed var(--app-border)";
+        li.style.paddingBottom = "0.2rem";
+        
+        const einheit = z.einheit ? ` ${z.einheit}` : '';
+        const menge = z.menge ? `${z.menge}${einheit} ` : '';
+        
+        li.innerHTML = `<span>• ${escapeHTML(menge)}${escapeHTML(z.name)}</span>`;
+        listRezepte.appendChild(li);
+      });
+    } else {
+      listRezepte.innerHTML = '<p class="empty-note">Keine Rezepte auf der Einkaufsliste.</p>';
+    }
+
+    // 3. Manuelle Einträge rendern (mit X zum Löschen)
+    listManuell.innerHTML = '';
+    if (data.manuell && data.manuell.length > 0) {
+      manuellHeader.style.display = 'block';
+      data.manuell.forEach(item => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span>${escapeHTML(item.name)}</span>
+            <button onclick="removeManuellFromEinkaufsliste(${item.id})" class="outline secondary" style="padding: 0.1rem 0.4rem; font-size: 0.75rem; margin:0;">X</button>
+          </div>
+        `;
+        listManuell.appendChild(li);
+      });
+    } else {
+      manuellHeader.style.display = 'none';
+    }
+
+  } catch (err) {
+    console.error("Fehler beim Laden:", err);
+    listRezepte.innerHTML = '<p class="empty-note">Fehler beim Laden der Einkaufsliste.</p>';
+  }
+}
+
+async function removeRezeptFromEinkaufsliste(titel) {
+  try {
+    await apiFetch('/api/einkaufsliste/entferrezent', { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titel: titel })
+    });
+    loadEinkaufsliste(); 
+  } catch(err) {
+    alert("Fehler beim Entfernen des Rezepts!");
+  }
+}
+
+async function removeManuellFromEinkaufsliste(id) {
+  try {
+    await apiFetch(`/api/einkaufsliste/manuell/${id}`, { method: 'DELETE' });
+    loadEinkaufsliste(); 
+  } catch(err) {
+    alert("Fehler beim Löschen!");
+  }
+}
+
+async function addToEinkaufsliste(rezeptId) {
+  if (!requireAuth()) return;
+  try {
+    await apiFetch(`/api/einkaufsliste/${rezeptId}`, { method: 'POST' });
+    alert('Zutaten erfolgreich auf die Einkaufsliste gesetzt!');
+  } catch (err) {
+    alert('Fehler beim Hinzufügen zur Einkaufsliste.');
+  }
+}
+
 // (Die Funktionen toggleRezeptVisibility, addRezeptToEinkaufsliste, rezeptLoeschen und portionenUmrechnen bleiben hier unverändert stehen - stelle sicher, dass du sie nicht versehentlich gelöscht hast beim Ersetzen).
 
 // ==========================================
