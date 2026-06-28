@@ -22,9 +22,9 @@
         <a href="./neues_rezept.html" data-icon="+">Neu</a>
         <a href="./community.html" data-icon="○">Öffentlich</a>
         <a href="./einkaufsliste.html" data-icon="✓">Einkauf</a>
+        <a href="./wochenplan.html" class="active" data-icon="□">Plan</a>
         <a href="./import.html" data-icon="↧">Import</a>
         <a href="./entdecken.html" data-icon="⌕">Entdecken</a>
-        <a href="./wochenplan.html" class="active" data-icon="□">Plan</a>
       </div>
     </nav>
 
@@ -36,18 +36,25 @@
       <div>
         <p class="pill">Planung</p>
         <h1>Wochenplan</h1>
-        <p>Plane pro Wochentag ein Gericht, ergänze kurze Notizen und übernimm die geplanten Rezepte gesammelt in die Einkaufsliste.</p>
+        <p>Geplante Gerichte lassen sich sofort kochen oder gesammelt in die Einkaufsliste übernehmen.</p>
       </div>
     </header>
 
-    <section class="week-toolbar">
+    <section class="week-summary-card" aria-label="Wochenplan Übersicht">
       <div>
         <h2>Diese Woche</h2>
-        <p>Die Auswahl basiert auf deinen gespeicherten Rezepten.</p>
+        <p id="week-plan-summary">Lade Plan...</p>
       </div>
-      <div class="week-toolbar-actions">
+      <div class="week-summary-actions">
         <button type="button" id="btn-wochenplan-einkauf" class="primary-action">Plan zur Einkaufsliste</button>
         <button type="button" id="btn-wochenplan-leeren" class="small-action danger-action">Plan leeren</button>
+      </div>
+    </section>
+
+    <section class="week-toolbar">
+      <div>
+        <h2>Tage planen</h2>
+        <p>Gericht wählen, direkt speichern, bei Bedarf in den Kochmodus springen.</p>
       </div>
     </section>
 

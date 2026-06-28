@@ -464,13 +464,15 @@ function renderRecipeCard(rawRecipe, options = {}) {
   ].join("");
 
   const safeId = Number(id) || 0;
+  const detailHref = `rezepte_detail.html?id=${encodeURIComponent(id || "")}`;
+  const cookHref = `rezepte_detail.html?id=${encodeURIComponent(id || "")}&cook=1`;
 
   return `
     <article class="recipe-card recipe-card-with-image recipe-card-clickable"
       role="link"
       tabindex="0"
       aria-label="${escapeHTML(title)} öffnen"
-      data-href="rezepte_detail.html?id=${escapeHTML(id)}"
+      data-href="${escapeHTML(detailHref)}"
       onclick="openRecipeCard(event, ${safeId})"
       onkeydown="handleRecipeCardKeydown(event, ${safeId})">
       ${renderRecipeImage(recipe, title, id)}
@@ -484,7 +486,10 @@ function renderRecipeCard(rawRecipe, options = {}) {
             ${renderMetaItem("calendar", "Hochgeladen", created)}
           </div>
         </div>
-        <div class="recipe-card-open-hint" aria-hidden="true">Details öffnen</div>
+        <div class="recipe-card-footer">
+          <a class="card-action card-cook-action" href="${escapeHTML(cookHref)}" data-stop-card-click onclick="event.stopPropagation()">Direkt kochen</a>
+          <span class="recipe-card-open-hint" aria-hidden="true">Details</span>
+        </div>
       </div>
     </article>
   `;
@@ -719,6 +724,7 @@ async function loadRezeptDetail() {
     }
 
     ensureDetailRecipeActions(recipe, isOwner, external);
+    maybeStartDetailCookMode();
   } catch (error) {
     title.textContent = "Rezept konnte nicht geladen werden";
     const detail = document.getElementById("standard-ansicht");
@@ -906,14 +912,38 @@ function ensureDetailRecipeActions(recipe, isOwner, external) {
     header.appendChild(actionBar);
   }
 
-  const visibilityLabel = recipe?.is_public ? "Privat machen" : "Öffentlich machen";
   actionBar.innerHTML = `
     <button type="button" class="primary-action" onclick="startKochmodus()">Rezept kochen</button>
     <button type="button" class="secondary" onclick="addRezeptToEinkaufsliste()">Zur Einkaufsliste</button>
-    ${isOwner ? `<a id="edit-rezept-link" class="secondary" role="button" href="bearbeiten.html?id=${recipeId}">Bearbeiten</a>` : ""}
-    ${isOwner ? `<button type="button" id="btn-visibility" class="secondary" onclick="toggleRezeptVisibility()" ${external ? "disabled" : ""} title="${external ? "Importierte Rezepte bleiben privat." : ""}">${escapeHTML(visibilityLabel)}</button>` : ""}
-    ${isOwner ? `<button type="button" class="danger-action" onclick="rezeptLoeschen(${recipeId})">Löschen</button>` : ""}
   `;
+
+  const ingredientList = document.getElementById("detail-zutaten");
+  const ingredientPanel = ingredientList?.closest?.(".detail-panel, article, section");
+  let management = document.getElementById("detail-management-actions");
+  if (!management && ingredientPanel) {
+    management = document.createElement("div");
+    management.id = "detail-management-actions";
+    management.className = "detail-management-actions";
+    ingredientPanel.appendChild(management);
+  }
+
+  if (management) {
+    if (isOwner) {
+      const visibilityLabel = recipe?.is_public ? "Privat machen" : "Öffentlich machen";
+      management.hidden = false;
+      management.innerHTML = `
+        <div class="detail-management-title">Rezept verwalten</div>
+        <div class="detail-management-buttons">
+          <a id="edit-rezept-link" class="secondary" role="button" href="bearbeiten.html?id=${recipeId}">Bearbeiten</a>
+          <button type="button" id="btn-visibility" class="secondary" onclick="toggleRezeptVisibility()" ${external ? "disabled" : ""} title="${external ? "Importierte Rezepte bleiben privat." : ""}">${escapeHTML(visibilityLabel)}</button>
+          <button type="button" class="danger-action" onclick="rezeptLoeschen(${recipeId})">Löschen</button>
+        </div>
+      `;
+    } else {
+      management.hidden = true;
+      management.innerHTML = "";
+    }
+  }
 
   const legacyOwnerControls = document.getElementById("owner-controls");
   if (legacyOwnerControls && legacyOwnerControls !== actionBar) {
@@ -1575,12 +1605,34 @@ function weeklyEntryFor(entries, day) {
   return entries.find((entry) => entry.tag === day && (entry.slot || "mittag") === "mittag") || null;
 }
 
+function recipeByIdMap(recipes) {
+  const map = new Map();
+  recipes.forEach((recipe) => {
+    const id = Number(recipe?.id || 0);
+    if (id) map.set(id, recipe);
+  });
+  return map;
+}
+
 function renderRecipeOptions(recipes, selectedId) {
   const selected = String(selectedId || "");
   return '<option value="">Kein Rezept</option>' + recipes.map((recipe) => {
     const id = String(recipe.id || "");
     return `<option value="${escapeHTML(id)}" ${id === selected ? "selected" : ""}>${escapeHTML(getRecipeTitle(recipe))}</option>`;
   }).join("");
+}
+
+function weekCardImageMarkup(recipe) {
+  const src = recipe ? recipeImageSrc(recipe) : "";
+  if (src) {
+    return `<div class="week-card-image"><img src="${escapeHTML(src)}" alt="${escapeHTML(getRecipeTitle(recipe))}" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest('.week-card-image')?.classList.add('is-placeholder'); this.remove();"></div>`;
+  }
+  return '<div class="week-card-image is-placeholder"><span>KochFlow</span></div>';
+}
+
+function weekCardStatusMarkup(entry, recipe) {
+  if (!entry?.rezept_id || !recipe) return '<span class="week-save-state is-empty">Nicht geplant</span>';
+  return '<span class="week-save-state is-saved">Gespeichert</span>';
 }
 
 async function loadWochenplan() {
@@ -1595,30 +1647,50 @@ async function loadWochenplan() {
     ]);
     const entries = planData?.eintraege || [];
     const recipes = recipeArray(recipeData);
+    const recipesById = recipeByIdMap(recipes);
+    const plannedCount = entries.filter((entry) => entry.rezept_id).length;
+
+    const summary = document.getElementById("week-plan-summary");
+    if (summary) {
+      summary.textContent = plannedCount
+        ? `${plannedCount} von 7 Tagen geplant.`
+        : "Noch kein Tag geplant.";
+    }
 
     container.innerHTML = WEEK_DAYS.map(([day, label, shortLabel]) => {
       const entry = weeklyEntryFor(entries, day);
-      const recipeTitle = entry?.titel || "Noch nicht geplant";
+      const recipeId = Number(entry?.rezept_id || 0);
+      const recipe = recipeId ? recipesById.get(recipeId) : null;
+      const recipeTitle = recipe ? getRecipeTitle(recipe) : "Noch nicht geplant";
+      const cookHref = recipeId ? `rezepte_detail.html?id=${encodeURIComponent(recipeId)}&cook=1` : "#";
+      const detailHref = recipeId ? `rezepte_detail.html?id=${encodeURIComponent(recipeId)}` : "#";
       return `
-        <article class="week-card" data-day="${escapeHTML(day)}" data-entry-id="${escapeHTML(entry?.id || "")}">
-          <div class="week-card-head">
+        <article class="week-card ${recipe ? "is-planned" : "is-empty"}" data-day="${escapeHTML(day)}" data-entry-id="${escapeHTML(entry?.id || "")}">
+          <div class="week-card-topline">
             <span class="week-day-short">${escapeHTML(shortLabel)}</span>
-            <h3>${escapeHTML(label)}</h3>
+            <div>
+              <h3>${escapeHTML(label)}</h3>
+              ${weekCardStatusMarkup(entry, recipe)}
+            </div>
           </div>
-          <p class="week-current">${escapeHTML(recipeTitle)}</p>
-          <label>
-            Rezept
-            <select class="week-recipe-select">
-              ${renderRecipeOptions(recipes, entry?.rezept_id)}
-            </select>
-          </label>
-          <label>
-            Notiz
-            <input class="week-note-input" type="text" value="${escapeHTML(entry?.notiz || "")}" placeholder="z. B. Reste, Meal Prep">
-          </label>
+          ${weekCardImageMarkup(recipe)}
+          <div class="week-card-body">
+            <p class="week-current">${escapeHTML(recipeTitle)}</p>
+            <label class="week-select-label">
+              <span>Rezept wählen</span>
+              <select class="week-recipe-select" onchange="autoSaveWeekCard(this)">
+                ${renderRecipeOptions(recipes, entry?.rezept_id)}
+              </select>
+            </label>
+          </div>
           <div class="week-actions">
-            <button type="button" class="primary-action" onclick="saveWeekCard(this)">Speichern</button>
-            <button type="button" class="small-action danger-action" onclick="deleteWeekCard(this)" ${entry?.id ? "" : "disabled"}>Entfernen</button>
+            <a class="primary-action week-cook-link ${recipeId ? "" : "is-disabled"}" href="${escapeHTML(cookHref)}" aria-disabled="${recipeId ? "false" : "true"}" ${recipeId ? "" : "tabindex=\"-1\""}>Kochen</a>
+            <a class="small-action week-detail-link ${recipeId ? "" : "is-disabled"}" href="${escapeHTML(detailHref)}" aria-disabled="${recipeId ? "false" : "true"}" ${recipeId ? "" : "tabindex=\"-1\""}>Details</a>
+            <button type="button" class="icon-action icon-action-danger icon-trash week-delete" onclick="deleteWeekCard(this)" ${entry?.id ? "" : "disabled"} title="Tag leeren" aria-label="${escapeHTML(label)} leeren">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v9h-2V9Zm4 0h2v9h-2V9ZM7 9h10l-1 11H8L7 9Z"></path>
+              </svg>
+            </button>
           </div>
         </article>
       `;
@@ -1631,26 +1703,36 @@ async function loadWochenplan() {
   }
 }
 
-async function saveWeekCard(button) {
+async function autoSaveWeekCard(select) {
   if (!requireAuth()) return;
-  const card = button.closest(".week-card");
+  const card = select.closest(".week-card");
   if (!card) return;
   const tag = card.dataset.day;
-  const rezept_id = card.querySelector(".week-recipe-select")?.value || "";
-  const notiz = card.querySelector(".week-note-input")?.value || "";
-  setButtonLoading(button, "Speichert...");
+  const rezept_id = select.value || "";
+  const previousValue = select.dataset.previousValue || "";
+  select.disabled = true;
+  card.classList.add("is-saving");
   try {
     await apiFetch("/api/wochenplan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tag, slot: "mittag", rezept_id, notiz })
+      body: JSON.stringify({ tag, slot: "mittag", rezept_id, notiz: "" })
     });
+    select.dataset.previousValue = rezept_id;
     await loadWochenplan();
-    showToast("Wochenplan wurde aktualisiert.");
+    showToast(rezept_id ? "Tag wurde gespeichert." : "Tag wurde geleert.");
   } catch (error) {
+    select.value = previousValue;
+    select.disabled = false;
+    card.classList.remove("is-saving");
     showToast(extractErrorMessage(error), "error");
-    resetButton(button);
   }
+}
+
+async function saveWeekCard(button) {
+  const card = button?.closest?.(".week-card");
+  const select = card?.querySelector?.(".week-recipe-select");
+  if (select) await autoSaveWeekCard(select);
 }
 
 async function deleteWeekCard(button) {
@@ -1659,11 +1741,13 @@ async function deleteWeekCard(button) {
   const entryId = card?.dataset.entryId;
   if (!entryId) return;
   try {
+    button.disabled = true;
     await apiFetch(`/api/wochenplan/${entryId}`, { method: "DELETE" });
     await loadWochenplan();
-    showToast("Eintrag wurde entfernt.");
+    showToast("Tag wurde geleert.");
   } catch (error) {
     showToast(extractErrorMessage(error), "error");
+    button.disabled = false;
   }
 }
 
@@ -1698,6 +1782,12 @@ function initWochenplanActions() {
   if (clearButton) clearButton.addEventListener("click", clearWochenplan);
   const shoppingButton = document.getElementById("btn-wochenplan-einkauf");
   if (shoppingButton) shoppingButton.addEventListener("click", addWochenplanToShoppingList);
+}
+
+function maybeStartDetailCookMode() {
+  const shouldStart = ["1", "true", "yes", "ja"].includes(String(getQueryParam("cook") || "").toLowerCase());
+  if (!shouldStart || !currentDetailRecipe) return;
+  window.setTimeout(() => startKochmodus(), 80);
 }
 
 function initAuthForms() {

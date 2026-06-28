@@ -2380,3 +2380,520 @@ ul#einkauf-zutaten > li.shopping-section > h3 span {
     min-width: 0;
   }
 }
+
+/* =========================================================
+   Update 8: feste Rezeptbild-Höhe + Wochenplan als Auto-Save-Feature
+   ========================================================= */
+.recipe-card.recipe-card-with-image,
+#recipe-list-container .recipe-card.recipe-card-with-image,
+#public-recipe-list-container .recipe-card.recipe-card-with-image,
+#home-my-recipes .recipe-card.recipe-card-with-image,
+#home-public-recipes .recipe-card.recipe-card-with-image {
+  min-height: 0 !important;
+  align-items: start !important;
+}
+
+.recipe-card-image {
+  height: clamp(9.8rem, 18vw, 12rem) !important;
+  min-height: 0 !important;
+  align-self: start !important;
+}
+
+.recipe-card-image img {
+  height: 100% !important;
+  min-height: 0 !important;
+  object-fit: cover !important;
+}
+
+.recipe-card-placeholder,
+.recipe-card-image .recipe-card-placeholder {
+  height: 100% !important;
+}
+
+.week-toolbar {
+  align-items: center !important;
+  gap: 1rem !important;
+  margin-top: 1.2rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.week-toolbar h2 {
+  margin-bottom: .25rem !important;
+}
+
+.week-toolbar p {
+  max-width: 44rem;
+}
+
+.week-toolbar-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: .65rem !important;
+  margin-left: auto;
+}
+
+.week-summary-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  margin: 1rem 0 1.1rem;
+  border: 1px solid var(--app-border);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--app-accent) 14%, transparent), transparent 18rem),
+    color-mix(in srgb, var(--app-surface) 92%, transparent);
+}
+
+.week-summary-card h2 {
+  margin: 0 0 .2rem !important;
+}
+
+.week-summary-card p {
+  margin: 0 !important;
+  color: var(--app-muted);
+}
+
+.week-summary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .6rem;
+  flex-wrap: wrap;
+}
+
+.week-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)) !important;
+  gap: 1rem !important;
+  align-items: stretch !important;
+}
+
+.week-card {
+  position: relative;
+  min-height: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border: 1px solid var(--app-border) !important;
+  border-radius: 1.35rem !important;
+  background: color-mix(in srgb, var(--app-surface) 94%, transparent) !important;
+  box-shadow: var(--app-shadow-soft);
+}
+
+.week-card.is-saving {
+  opacity: .76;
+}
+
+.week-card-topline {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  padding: .95rem .95rem .75rem;
+}
+
+.week-day-short {
+  flex: 0 0 auto;
+  width: 2.35rem !important;
+  height: 2.35rem !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  border-radius: 999px !important;
+  background: var(--app-accent-soft) !important;
+  color: var(--app-accent-strong) !important;
+  font-weight: 950 !important;
+}
+
+.week-card h3 {
+  margin: 0 !important;
+  font-size: 1.08rem !important;
+  line-height: 1.1 !important;
+}
+
+.week-save-state {
+  display: inline-flex;
+  align-items: center;
+  margin-top: .2rem;
+  font-size: .72rem;
+  font-weight: 900;
+  color: var(--app-muted);
+}
+
+.week-save-state.is-saved {
+  color: var(--app-accent-strong);
+}
+
+.week-card-image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 10.25rem;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-top: 1px solid color-mix(in srgb, var(--app-border) 66%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--app-border) 66%, transparent);
+  background:
+    radial-gradient(circle at 25% 20%, color-mix(in srgb, var(--app-accent) 18%, transparent), transparent 45%),
+    var(--app-surface-2);
+}
+
+.week-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.week-card-image.is-placeholder span {
+  font-weight: 950;
+  color: color-mix(in srgb, var(--app-muted) 76%, var(--app-accent));
+}
+
+.week-card-body {
+  display: grid;
+  gap: .85rem;
+  padding: .95rem;
+}
+
+.week-current {
+  min-height: 2.65rem !important;
+  margin: 0 !important;
+  color: var(--app-text) !important;
+  font-size: 1.12rem;
+  font-weight: 950 !important;
+  line-height: 1.18 !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.week-card.is-empty .week-current {
+  color: var(--app-muted) !important;
+}
+
+.week-select-label {
+  display: grid !important;
+  gap: .35rem !important;
+  margin: 0 !important;
+  color: var(--app-muted) !important;
+  font-size: .82rem !important;
+  font-weight: 900 !important;
+}
+
+.week-card select.week-recipe-select {
+  width: 100% !important;
+  min-height: 3rem !important;
+  margin: 0 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.week-actions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr auto !important;
+  gap: .55rem !important;
+  align-items: center !important;
+  margin-top: auto !important;
+  padding: 0 .95rem .95rem !important;
+}
+
+.week-actions .primary-action,
+.week-actions .small-action,
+.week-actions .icon-danger {
+  min-height: 2.55rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+}
+
+.week-actions .icon-danger {
+  width: 2.65rem !important;
+  min-width: 2.65rem !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+}
+
+.week-actions .is-disabled,
+.week-actions [disabled] {
+  opacity: .46;
+  pointer-events: none;
+}
+
+@media (max-width: 820px) {
+  .recipe-card.recipe-card-with-image,
+  #recipe-list-container .recipe-card.recipe-card-with-image,
+  #public-recipe-list-container .recipe-card.recipe-card-with-image,
+  #home-my-recipes .recipe-card.recipe-card-with-image,
+  #home-public-recipes .recipe-card.recipe-card-with-image {
+    grid-template-columns: 1fr !important;
+  }
+
+  .recipe-card-image {
+    height: 12rem !important;
+    width: 100% !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--app-border) !important;
+  }
+
+  .week-summary-card {
+    grid-template-columns: 1fr;
+  }
+
+  .week-summary-actions,
+  .week-toolbar-actions {
+    width: 100%;
+    justify-content: flex-start !important;
+  }
+
+  .week-summary-actions button,
+  .week-toolbar-actions button {
+    flex: 1 1 12rem;
+  }
+
+  .week-grid {
+    display: flex !important;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: .45rem;
+  }
+
+  .week-card {
+    flex: 0 0 min(86vw, 22rem);
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 520px) {
+  .week-actions {
+    grid-template-columns: 1fr auto !important;
+  }
+
+  .week-actions .week-detail-link {
+    display: none !important;
+  }
+}
+
+/* =========================================================
+   Update 9: Karten-Direktstart, ruhigere Detailaktionen, Wochenplan-Buttons
+   ========================================================= */
+.recipe-card.recipe-card-with-image,
+#recipe-list-container .recipe-card.recipe-card-with-image,
+#public-recipe-list-container .recipe-card.recipe-card-with-image,
+#home-my-recipes .recipe-card.recipe-card-with-image,
+#home-public-recipes .recipe-card.recipe-card-with-image {
+  min-height: 11.5rem !important;
+}
+
+.recipe-card-image,
+.recipe-card-image img,
+#recipe-list-container .recipe-card-image,
+#public-recipe-list-container .recipe-card-image,
+#home-my-recipes .recipe-card-image,
+#home-public-recipes .recipe-card-image {
+  height: 11.5rem !important;
+  min-height: 11.5rem !important;
+  max-height: 11.5rem !important;
+}
+
+.recipe-card-clickable,
+.recipe-card-clickable *,
+.recipe-card-clickable a,
+.recipe-card-clickable a:hover,
+.recipe-card-clickable a:focus {
+  text-decoration: none !important;
+}
+
+.recipe-card-clickable:hover,
+.recipe-card-clickable:focus-visible {
+  transform: translateY(-1px);
+}
+
+.recipe-card-clickable:hover .recipe-title,
+.recipe-card-clickable:focus-visible .recipe-title {
+  color: var(--app-text) !important;
+  text-decoration: none !important;
+}
+
+.recipe-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  flex-wrap: wrap;
+  margin-top: .65rem;
+}
+
+.card-cook-action {
+  min-height: 2.35rem !important;
+  padding: .5rem .85rem !important;
+  border-radius: 999px !important;
+  background: var(--app-accent-soft) !important;
+  color: var(--app-accent-strong) !important;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 32%, transparent) !important;
+  box-shadow: none !important;
+}
+
+.card-cook-action:hover,
+.card-cook-action:focus-visible {
+  background: color-mix(in srgb, var(--app-accent) 16%, var(--app-accent-soft)) !important;
+  color: var(--app-accent-strong) !important;
+}
+
+.recipe-card-footer .recipe-card-open-hint {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--app-muted);
+  opacity: .72;
+  font-size: .82rem;
+}
+
+.recipe-detail-header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start !important;
+}
+
+.detail-action-bar {
+  padding-top: 2.2rem;
+  min-width: 0 !important;
+}
+
+.detail-action-bar button,
+.detail-action-bar [role="button"] {
+  border-radius: 999px !important;
+}
+
+.detail-management-actions {
+  margin-top: 1.1rem;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--app-border) 78%, transparent);
+  display: grid;
+  gap: .7rem;
+}
+
+.detail-management-actions[hidden] {
+  display: none !important;
+}
+
+.detail-management-title {
+  font-weight: 950;
+  color: var(--app-muted);
+  font-size: .9rem;
+}
+
+.detail-management-buttons {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  flex-wrap: wrap;
+}
+
+.detail-management-buttons .secondary,
+.detail-management-buttons .danger-action {
+  margin: 0 !important;
+  border-radius: 999px !important;
+}
+
+.week-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: .6rem !important;
+  padding: 0 .95rem .95rem !important;
+}
+
+.week-actions .primary-action,
+.week-actions .small-action,
+.week-actions .icon-action,
+.week-actions .icon-action-danger,
+.week-actions .week-delete {
+  min-height: 2.55rem !important;
+  height: 2.55rem !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  font-weight: 900 !important;
+}
+
+.week-actions .week-cook-link {
+  flex: 1 1 auto;
+  padding: .58rem 1rem !important;
+}
+
+.week-actions .week-detail-link {
+  flex: 0 0 auto;
+  padding: .5rem .9rem !important;
+  background: var(--app-accent-soft) !important;
+  color: var(--app-accent-strong) !important;
+  border: 1px solid transparent !important;
+}
+
+.week-actions .week-delete {
+  flex: 0 0 2.55rem !important;
+  width: 2.55rem !important;
+  min-width: 2.55rem !important;
+  padding: 0 !important;
+  color: var(--app-danger) !important;
+  border: 1px solid color-mix(in srgb, var(--app-danger) 35%, transparent) !important;
+  background: color-mix(in srgb, var(--app-danger) 12%, var(--app-surface)) !important;
+}
+
+.week-actions .is-disabled,
+.week-actions [disabled] {
+  opacity: .45 !important;
+  pointer-events: none;
+}
+
+@media (max-width: 820px) {
+  .recipe-card-image,
+  .recipe-card-image img,
+  #recipe-list-container .recipe-card-image,
+  #public-recipe-list-container .recipe-card-image,
+  #home-my-recipes .recipe-card-image,
+  #home-public-recipes .recipe-card-image {
+    height: 12rem !important;
+    min-height: 12rem !important;
+    max-height: 12rem !important;
+  }
+
+  .recipe-detail-header {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-action-bar {
+    padding-top: .25rem;
+    justify-content: flex-start !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .recipe-card-footer {
+    align-items: stretch;
+  }
+
+  .card-cook-action {
+    flex: 1 1 auto;
+  }
+
+  .week-actions {
+    grid-template-columns: none !important;
+    flex-direction: row !important;
+  }
+
+  .week-actions .week-detail-link {
+    display: inline-flex !important;
+  }
+}
