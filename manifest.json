@@ -1,6 +1,6 @@
 {
-  "name": "Berufsschul-Koch-App",
-  "short_name": "Koch-App",
+  "name": "KochFlow",
+  "short_name": "KochFlow",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#ffffff",

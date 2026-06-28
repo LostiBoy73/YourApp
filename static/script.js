@@ -1,13 +1,7 @@
-// ==========================================
-// KONFIGURATION
-// ==========================================
 const API_BASE_URL = "https://api.robots-compliance.cc";
 
-// ==========================================
-// ALLGEMEINE HELFER
-// ==========================================
-function getQueryParam(param) {
-  return new URLSearchParams(window.location.search).get(param);
+function getQueryParam(name) {
+  return new URLSearchParams(window.location.search).get(name);
 }
 
 function escapeHTML(value) {
@@ -19,1396 +13,1382 @@ function escapeHTML(value) {
     .replaceAll("'", "&#039;");
 }
 
-function getRecipeTitle(rezept) {
-  return rezept?.titel || rezept?.title || "Unbenanntes Rezept";
+function getRecipeTitle(recipe) {
+  return recipe?.titel ?? recipe?.title ?? recipe?.strMeal ?? "Unbenanntes Rezept";
+}
+
+function parseStoredUser(raw) {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "string") return { username: parsed };
+    if (parsed && typeof parsed === "object") return parsed;
+  } catch (_error) {
+    return { username: raw };
+  }
+  return null;
 }
 
 function getCurrentUser() {
-  return localStorage.getItem("kochflow_user") || "";
+  return parseStoredUser(localStorage.getItem("kochflow_user"));
+}
+
+function getCurrentUsername() {
+  const user = getCurrentUser();
+  return user?.username || user?.name || "";
 }
 
 function getAuthToken() {
   return localStorage.getItem("kochflow_token") || "";
 }
 
-function setAuth(username, token) {
+function setAuth(userOrUsername, token) {
+  const username = typeof userOrUsername === "string"
+    ? userOrUsername
+    : (userOrUsername?.username || userOrUsername?.name || "");
   localStorage.setItem("kochflow_user", username);
-  localStorage.setItem("kochflow_token", token);
+  localStorage.setItem("kochflow_token", token || "");
   localStorage.removeItem("kochapp_user");
 }
 
-function logout() {
+function clearAuth() {
   localStorage.removeItem("kochflow_user");
   localStorage.removeItem("kochflow_token");
-  window.location.href = "./login.html";
 }
 
-function safeNextUrl(next) {
-  if (!next) return "./index.html";
-  if (next.startsWith("http://") || next.startsWith("https://")) return "./index.html";
-  return `./${next.replace(/^\.?\//, "")}`;
+function logout() {
+  clearAuth();
+  window.location.href = "index.html";
+}
+
+function safeNextUrl() {
+  const current = window.location.pathname.split("/").pop() + window.location.search;
+  return encodeURIComponent(current || "index.html");
+}
+
+function safeRedirectTarget(value) {
+  if (!value) return "index.html";
+  if (value.startsWith("http://") || value.startsWith("https://")) return "index.html";
+  return value.replace(/^\.\//, "");
 }
 
 function requireAuth() {
-  if (getAuthToken()) return true;
-
-  const currentPage = window.location.pathname.split("/").pop() || "index.html";
-  const next = `${currentPage}${window.location.search || ""}`;
-  window.location.href = `./login.html?next=${encodeURIComponent(next)}`;
-  return false;
+  if (!getAuthToken()) {
+    window.location.href = `login.html?next=${safeNextUrl()}`;
+    return false;
+  }
+  return true;
 }
 
-function authHeaders(extra = {}) {
+function authHeaders(extraHeaders = {}) {
   const token = getAuthToken();
-  const headers = { ...extra };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  return headers;
+  return {
+    ...extraHeaders,
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
 }
 
 async function apiFetch(path, options = {}) {
-  const optionsCopy = { ...options };
-  const existingHeaders = optionsCopy.headers || {};
-  optionsCopy.headers = authHeaders(existingHeaders);
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: authHeaders(options.headers || {})
+  });
 
-  const response = await fetch(`${API_BASE_URL}${path}`, optionsCopy);
-
-  if (response.status === 401) {
-    localStorage.removeItem("kochflow_user");
-    localStorage.removeItem("kochflow_token");
-
-    const currentPage = window.location.pathname.split("/").pop() || "index.html";
-    const next = `${currentPage}${window.location.search || ""}`;
-    window.location.href = `./login.html?next=${encodeURIComponent(next)}`;
+  let payload = null;
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    try { payload = await response.json(); } catch (_error) { payload = null; }
+  } else if (response.status !== 204) {
+    try { payload = await response.text(); } catch (_error) { payload = null; }
   }
 
-  return response;
+  if (response.status === 401) {
+    clearAuth();
+    throw new Error("Nicht angemeldet oder Sitzung abgelaufen.");
+  }
+
+  if (!response.ok) {
+    const message = payload?.detail || payload?.error || (typeof payload === "string" ? payload : `Fehler ${response.status}`);
+    throw new Error(message);
+  }
+
+  if (payload && typeof payload === "object" && (payload.success === false || payload.ok === false)) {
+    throw new Error(payload.detail || payload.error || "Aktion fehlgeschlagen.");
+  }
+
+  return payload;
 }
 
 function renderCurrentUserBadge() {
-  const el = document.getElementById("current-user");
-  if (!el) return;
+  const target = document.getElementById("current-user");
+  if (!target) return;
 
-  const user = getCurrentUser();
+  const username = getCurrentUsername();
   const token = getAuthToken();
-
-  if (!user || !token) {
-    el.innerHTML = `
-      <span class="user-chip">Nicht angemeldet</span>
-      <a class="small-action" href="./login.html">Anmelden</a>
+  if (!username || !token) {
+    target.innerHTML = `
+      <small class="auth-status">
+        <span>Nicht angemeldet</span>
+        <a class="tiny-btn" href="login.html?next=${safeNextUrl()}">Anmelden</a>
+      </small>
     `;
     return;
   }
 
-  el.innerHTML = `
-    <span class="user-chip">Angemeldet als <strong>${escapeHTML(user)}</strong></span>
-    <button type="button" class="small-action" onclick="logout()">Abmelden</button>
+  target.innerHTML = `
+    <small class="auth-status">
+      <span>Angemeldet als <strong>${escapeHTML(username)}</strong></span>
+      <button type="button" class="tiny-btn" onclick="logout()">Abmelden</button>
+    </small>
   `;
 }
 
-function showMessage(elementId, message, type = "info") {
-  const el = document.getElementById(elementId);
-  if (!el) return;
-
-  el.textContent = message;
-  el.className = `message ${type}`;
-  el.hidden = false;
+function replaceBrandMarks() {
+  document.querySelectorAll(".brand-mark").forEach((mark) => {
+    if (mark.querySelector("img")) return;
+    mark.innerHTML = '<img src="./static/icon-192.png" alt="KochFlow" class="brand-logo">';
+    mark.classList.add("brand-mark-image");
+  });
 }
 
-function setButtonLoading(button, loadingText) {
+function showMessage(element, text, type = "info") {
+  if (!element) return;
+  element.textContent = text;
+  element.className = `message ${type}`;
+  element.hidden = false;
+}
+
+function setButtonLoading(button, text = "Lädt...") {
   if (!button) return;
-  button.dataset.originalText = button.textContent;
+  if (!button.dataset.originalText) button.dataset.originalText = button.textContent;
+  button.textContent = text;
   button.disabled = true;
-  button.textContent = loadingText;
 }
 
 function resetButton(button) {
   if (!button) return;
-  button.disabled = false;
   button.textContent = button.dataset.originalText || button.textContent;
+  button.disabled = false;
 }
 
-function extractErrorMessage(result, fallback = "Aktion fehlgeschlagen") {
-  if (!result) return fallback;
+function extractErrorMessage(error) {
+  return error?.message || "Unbekannter Fehler";
+}
 
-  if (typeof result.detail === "string") return result.detail;
-  if (typeof result.error === "string") return result.error;
-
-  if (Array.isArray(result.detail)) {
-    return result.detail.map((item) => item.msg || JSON.stringify(item)).join(", ");
+function getImportDraft() {
+  const raw = sessionStorage.getItem("kochflow_import_draft");
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (_error) {
+    return null;
   }
-
-  if (result.detail) return JSON.stringify(result.detail);
-  return fallback;
 }
 
-// ==========================================
-// REZEPT-KARTEN
-// ==========================================
-function renderRecipeCard(rezept, options = {}) {
-  const id = rezept.id;
-  const title = getRecipeTitle(rezept);
-  const isPublic = Number(rezept.is_public || 0) === 1;
-  const owner = rezept.owner_name || "Unbekannt";
-  const duration = rezept.dauer || 0;
-  const source = rezept.source || "manual";
+function setImportDraft(recipe, source) {
+  const draft = {
+    ...(recipe?.draft || recipe || {}),
+    source: source || recipe?.source || recipe?.draft?.source || "external",
+    is_public: false
+  };
+  sessionStorage.setItem("kochflow_import_draft", JSON.stringify(draft));
+}
 
-  const categories = (rezept.kategorie || "")
-    .split(",")
-    .map((k) => k.trim())
-    .filter(Boolean)
-    .slice(0, 4);
+function clearImportDraft() {
+  sessionStorage.removeItem("kochflow_import_draft");
+}
 
-  const catHTML = categories.length
-    ? categories.map((k) => `<span class="pill">${escapeHTML(k)}</span>`).join("")
-    : `<span class="pill muted">Ohne Kategorie</span>`;
 
-  const visibilityBadge = isPublic
-    ? `<span class="pill public">Öffentlich</span>`
-    : `<span class="pill private">Privat</span>`;
+function showToast(message, type = "success") {
+  const oldToast = document.querySelector(".app-toast");
+  if (oldToast) oldToast.remove();
 
-  const sourceBadge = source && source !== "manual"
-    ? `<span class="pill imported">Importiert</span>`
-    : `<span class="pill muted">Eigenes Rezept</span>`;
+  const toast = document.createElement("div");
+  toast.className = `app-toast ${type}`;
+  toast.setAttribute("role", "status");
+  toast.setAttribute("aria-live", "polite");
+  toast.textContent = message;
+  document.body.appendChild(toast);
 
-  const showOwner = options.showOwner !== false;
-  const showEdit = options.showEdit === true;
+  requestAnimationFrame(() => toast.classList.add("is-visible"));
+  window.setTimeout(() => {
+    toast.classList.remove("is-visible");
+    window.setTimeout(() => toast.remove(), 220);
+  }, 2600);
+}
+
+function normalizeShoppingValue(value) {
+  return String(value ?? "").trim().replace(/\s+/g, " ");
+}
+
+function shoppingCheckedKey(type, value) {
+  return `kochflow_shopping_checked:${type}:${normalizeShoppingValue(value).toLowerCase()}`;
+}
+
+function isShoppingChecked(type, value) {
+  return localStorage.getItem(shoppingCheckedKey(type, value)) === "1";
+}
+
+function bindShoppingCheckboxes(root) {
+  if (!root) return;
+  root.querySelectorAll(".shopping-check[data-shopping-type][data-shopping-value]").forEach((checkbox) => {
+    checkbox.addEventListener("change", () => {
+      const key = shoppingCheckedKey(checkbox.dataset.shoppingType, checkbox.dataset.shoppingValue);
+      if (checkbox.checked) localStorage.setItem(key, "1");
+      else localStorage.removeItem(key);
+    });
+  });
+}
+
+function renderTrashButton(onclick, label = "Entfernen") {
+  return `
+    <button type="button" class="icon-action icon-action-danger icon-trash" onclick="${onclick}" aria-label="${escapeHTML(label)}" title="${escapeHTML(label)}">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v9h-2V9Zm4 0h2v9h-2V9ZM7 9h10l-1 11H8L7 9Z"></path>
+      </svg>
+    </button>
+  `;
+}
+
+function renderShoppingIngredientRow(item, type, index) {
+  const isManual = type === "manual";
+  const text = isManual
+    ? normalizeShoppingValue(item?.text || item?.name || item?.zutat || item)
+    : normalizeShoppingValue(renderIngredientText(item));
+  const keyValue = isManual ? String(item?.id || text || index) : `${text}-${index}`;
+  const checked = isShoppingChecked(type, keyValue) ? "checked" : "";
+  const checkboxId = `shopping-${type}-${String(keyValue).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  const ids = Array.isArray(item?.ids) ? item.ids.filter((value) => Number(value) > 0).map(Number) : [];
+  const removeButton = isManual && item?.id
+    ? renderTrashButton(`removeManuellFromEinkaufsliste(${Number(item.id)})`, "Manuellen Eintrag entfernen")
+    : (!isManual && ids.length
+      ? renderTrashButton(`removeRecipeIngredientFromEinkaufsliste(${JSON.stringify(ids)})`, "Zutat aus Einkaufsliste entfernen")
+      : "");
+
+  return `
+    <li class="shopping-check-row ${isManual ? "is-manual" : "is-recipe"}">
+      <label class="shopping-check-label" for="${escapeHTML(checkboxId)}">
+        <input
+          type="checkbox"
+          class="shopping-check"
+          id="${escapeHTML(checkboxId)}"
+          data-shopping-type="${escapeHTML(type)}"
+          data-shopping-value="${escapeHTML(keyValue)}"
+          ${checked}
+        >
+        <span class="shopping-check-text">${escapeHTML(text)}</span>
+      </label>
+      ${removeButton ? `<span class="shopping-item-actions">${removeButton}</span>` : ""}
+    </li>
+  `;
+}
+
+function isExternallyImported(source) {
+  const normalized = String(source || "").toLowerCase();
+  return ["chefkoch", "mealdb", "themealdb", "external", "external_api", "api", "text"].includes(normalized);
+}
+
+function formatDate(value) {
+  if (!value) return "unbekannt";
+  const raw = String(value);
+  const date = new Date(raw.includes("T") ? raw : raw.replace(" ", "T") + "Z");
+  if (Number.isNaN(date.getTime())) return "unbekannt";
+  return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function tryJSON(value) {
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  if (!text) return null;
+  if (!((text.startsWith("[") && text.endsWith("]")) || (text.startsWith("{") && text.endsWith("}")))) return null;
+  try { return JSON.parse(text); } catch (_error) { return null; }
+}
+
+function parseCategories(value) {
+  const parsed = tryJSON(value);
+  const source = Array.isArray(parsed) ? parsed : value;
+  if (Array.isArray(source)) return source.map((item) => String(item).trim()).filter(Boolean);
+  return String(source || "").split(/[,;/]/).map((item) => item.trim()).filter(Boolean);
+}
+
+function parseIngredientLine(line) {
+  const text = String(line || "").trim();
+  if (!text) return null;
+  const parts = text.split("|").map((part) => part.trim());
+  if (parts.length >= 3) {
+    return { menge: parts[0], einheit: parts[1], name: parts.slice(2).join("|") };
+  }
+  return { menge: "", einheit: "", name: text };
+}
+
+function parseIngredients(value) {
+  const parsed = tryJSON(value);
+  const source = Array.isArray(parsed) ? parsed : value;
+  if (Array.isArray(source)) {
+    return source.map((item) => {
+      if (typeof item === "string") return parseIngredientLine(item);
+      return {
+        menge: item?.menge ?? "",
+        einheit: item?.einheit ?? "",
+        name: item?.name ?? item?.zutat ?? item?.text ?? ""
+      };
+    }).filter((item) => item && item.name);
+  }
+  return String(source || "").split(/\n+/).map(parseIngredientLine).filter((item) => item && item.name);
+}
+
+function parseStepLine(line) {
+  const text = String(line || "").trim();
+  if (!text) return null;
+  const [duration, ...rest] = text.split(":::");
+  if (rest.length) return { dauer: Number(duration) || 0, schritt: rest.join(":::").trim() };
+  return { dauer: 0, schritt: text };
+}
+
+function parseSteps(value) {
+  const parsed = tryJSON(value);
+  const source = Array.isArray(parsed) ? parsed : value;
+  if (Array.isArray(source)) {
+    return source.map((item) => {
+      if (typeof item === "string") return parseStepLine(item);
+      return {
+        dauer: Number(item?.dauer || 0),
+        schritt: item?.schritt ?? item?.text ?? ""
+      };
+    }).filter((item) => item && item.schritt);
+  }
+  return String(source || "").split("|||").map(parseStepLine).filter((item) => item && item.schritt);
+}
+
+function normalizeRecipe(recipe) {
+  if (!recipe || typeof recipe !== "object") return recipe;
+  return {
+    ...recipe,
+    kategorie: parseCategories(recipe.kategorie),
+    zutaten: parseIngredients(recipe.zutaten),
+    anleitung: parseSteps(recipe.anleitung),
+    is_public: recipe.is_public === true || Number(recipe.is_public || 0) === 1,
+    source: recipe.source || "manual"
+  };
+}
+
+function recipeArray(data) {
+  const items = Array.isArray(data) ? data : (data?.rezepte || data?.recipes || data?.items || []);
+  return items.map(normalizeRecipe);
+}
+
+function iconSVG(name) {
+  const icons = {
+    user: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.1 0-7 2.1-7 5v1h14v-1c0-2.9-2.9-5-7-5Z"/></svg>',
+    clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10.01 10.01 0 0 0 12 2Zm1 10.1 3.5 2.1-.9 1.5L11 13V6h2Z"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3Zm11 8H6v10h12ZM6 8h12V6H6Z"/></svg>'
+  };
+  return icons[name] || "";
+}
+
+function renderMetaItem(iconName, label, value) {
+  return `
+    <span class="recipe-meta-item" title="${escapeHTML(label)}">
+      ${iconSVG(iconName)}
+      <span><strong>${escapeHTML(label)}:</strong> ${escapeHTML(value)}</span>
+    </span>
+  `;
+}
+
+function renderRecipeCard(rawRecipe, options = {}) {
+  const recipe = normalizeRecipe(rawRecipe);
+  const id = recipe.id;
+  const title = getRecipeTitle(recipe);
+  const owner = recipe.owner_name || recipe.owner || "unbekannt";
+  const dauer = recipe.dauer ? `${recipe.dauer} Min.` : "keine Angabe";
+  const created = formatDate(recipe.created_at);
+  const source = recipe.source || "manual";
+  const external = isExternallyImported(source);
+
+  const badges = [
+    ...(recipe.kategorie.length ? recipe.kategorie.map((category) => `<span class="badge">${escapeHTML(category)}</span>`) : []),
+    recipe.is_public ? '<span class="badge badge-public">Öffentlich</span>' : '<span class="badge badge-private">Privat</span>',
+    external ? `<span class="badge badge-muted">Import: ${escapeHTML(source)}</span>` : '<span class="badge badge-muted">Eigenes Rezept</span>'
+  ].join("");
+
+  const actions = [];
+  if (options.showCook !== false) actions.push(`<a class="card-action" href="rezepte_detail.html?id=${id}">Kochen</a>`);
+  if (options.showEdit) actions.push(`<a class="card-action" href="bearbeiten.html?id=${id}">Bearbeiten</a>`);
+  if (options.showDelete) actions.push(`<button type="button" class="card-action danger-action" onclick="rezeptLoeschen(${id})">Löschen</button>`);
 
   return `
     <article class="recipe-card">
-      <a class="recipe-card-main" href="./rezepte_detail.html?id=${encodeURIComponent(id)}">
-        <div class="recipe-card-header">
-          <h3>${escapeHTML(title)}</h3>
-          <div class="recipe-card-badges">
-            ${catHTML}
-            ${visibilityBadge}
-            ${sourceBadge}
-          </div>
+      <div class="recipe-main">
+        <h3><a class="recipe-title" href="rezepte_detail.html?id=${id}">${escapeHTML(title)}</a></h3>
+        <div class="recipe-badges">${badges}</div>
+        <div class="recipe-meta">
+          ${renderMetaItem("clock", "Kochzeit", dauer)}
+          ${renderMetaItem("user", "Von", owner)}
+          ${renderMetaItem("calendar", "Hochgeladen", created)}
         </div>
-
-        <div class="recipe-card-meta">
-          <span>${duration} Min.</span>
-          ${showOwner ? `<span>Von ${escapeHTML(owner)}</span>` : ""}
-        </div>
-      </a>
-
-      <div class="recipe-card-actions">
-        <a class="button secondary" href="./rezepte_detail.html?id=${encodeURIComponent(id)}">Kochen</a>
-        ${showEdit ? `<a class="button ghost" href="./bearbeiten.html?id=${encodeURIComponent(id)}">Bearbeiten</a>` : ""}
       </div>
+      <div class="recipe-actions">${actions.join("")}</div>
     </article>
   `;
 }
 
-// ==========================================
-// AUTH / LOGIN
-// ==========================================
-function showAuthTab(mode) {
-  const loginForm = document.getElementById("form-login");
-  const registerForm = document.getElementById("form-register");
-  const loginTab = document.getElementById("tab-login");
-  const registerTab = document.getElementById("tab-register");
+let cachedOwnRecipes = [];
+let cachedPublicRecipes = [];
+let currentDetailRecipe = null;
+let currentStepIndex = 0;
 
-  if (!loginForm || !registerForm) return;
-
-  loginForm.hidden = mode !== "login";
-  registerForm.hidden = mode !== "register";
-
-  loginTab?.classList.toggle("secondary", mode !== "login");
-  registerTab?.classList.toggle("secondary", mode !== "register");
+function renderRecipeCollection(container, recipes, options) {
+  if (!container) return;
+  container.innerHTML = recipes.map((recipe) => renderRecipeCard(recipe, options)).join("") || '<div class="empty-note">Keine passenden Rezepte gefunden.</div>';
 }
 
-function initAuthForms() {
-  const loginForm = document.getElementById("form-login");
-  const registerForm = document.getElementById("form-register");
+function filterRecipes(recipes) {
+  const searchElement = document.getElementById("search") || document.getElementById("suche-input");
+  const categoryElement = document.getElementById("filter-kategorie") || document.getElementById("kategorie-select");
+  const search = (searchElement?.value || "").trim().toLowerCase();
+  const category = (categoryElement?.value || "").trim().toLowerCase();
 
-  if (!loginForm && !registerForm) return;
-
-  const next = getQueryParam("next") || "index.html";
-
-  document.getElementById("tab-login")?.addEventListener("click", () => showAuthTab("login"));
-  document.getElementById("tab-register")?.addEventListener("click", () => showAuthTab("register"));
-
-  loginForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const msg = document.getElementById("auth-message");
-    const btn = e.submitter;
-
-    const payload = {
-      username: document.getElementById("login-username")?.value.trim() || "",
-      password: document.getElementById("login-password")?.value || "",
-    };
-
-    if (!payload.username || !payload.password) {
-      showMessage("auth-message", "Bitte Benutzername und Passwort eingeben.", "error");
-      return;
-    }
-
-    setButtonLoading(btn, "Melde an...");
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(extractErrorMessage(result, "Anmeldung fehlgeschlagen"));
-      }
-
-      setAuth(result.username, result.token);
-      window.location.href = safeNextUrl(next);
-    } catch (err) {
-      if (msg) {
-        msg.textContent = err.message;
-        msg.hidden = false;
-      }
-      resetButton(btn);
-    }
-  });
-
-  registerForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const msg = document.getElementById("auth-message");
-    const btn = e.submitter;
-
-    const password = document.getElementById("register-password")?.value || "";
-    const repeat = document.getElementById("register-password-repeat")?.value || "";
-
-    if (password !== repeat) {
-      showMessage("auth-message", "Die Passwörter stimmen nicht überein.", "error");
-      return;
-    }
-
-    const payload = {
-      username: document.getElementById("register-username")?.value.trim() || "",
-      password,
-    };
-
-    if (!payload.username || !payload.password) {
-      showMessage("auth-message", "Bitte Benutzername und Passwort eingeben.", "error");
-      return;
-    }
-
-    setButtonLoading(btn, "Erstelle Konto...");
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(extractErrorMessage(result, "Registrierung fehlgeschlagen"));
-      }
-
-      setAuth(result.username, result.token);
-      window.location.href = safeNextUrl(next);
-    } catch (err) {
-      if (msg) {
-        msg.textContent = err.message;
-        msg.hidden = false;
-      }
-      resetButton(btn);
-    }
+  return recipes.filter((rawRecipe) => {
+    const recipe = normalizeRecipe(rawRecipe);
+    const titleMatches = getRecipeTitle(recipe).toLowerCase().includes(search);
+    const categoryMatches = !category || recipe.kategorie.some((item) => item.toLowerCase().includes(category));
+    return titleMatches && categoryMatches;
   });
 }
 
-// ==========================================
-// HOME / STARTSEITE
-// ==========================================
+function populateCategorySelect(recipes) {
+  const select = document.getElementById("kategorie-select");
+  if (!select) return;
+  const current = select.value;
+  const categories = new Set();
+  recipes.forEach((rawRecipe) => normalizeRecipe(rawRecipe).kategorie.forEach((category) => categories.add(category)));
+  select.innerHTML = '<option value="">Alle Kategorien</option>' + Array.from(categories).sort((a, b) => a.localeCompare(b, "de")).map((category) => `<option value="${escapeHTML(category)}">${escapeHTML(category)}</option>`).join("");
+  if (current) select.value = current;
+}
+
 async function loadHomeDashboard() {
   const myContainer = document.getElementById("home-my-recipes");
   const publicContainer = document.getElementById("home-public-recipes");
+  if (!myContainer && !publicContainer) return;
 
-  if (myContainer) {
-    if (!getAuthToken()) {
-      myContainer.innerHTML = `
-        <article class="empty-card">
-          <h3>Private Rezepte</h3>
-          <p>Melde dich an, um deine eigenen Rezepte zu sehen und neue Rezepte zu speichern.</p>
-          <a class="button" href="./login.html">Anmelden</a>
-        </article>
-      `;
-    } else {
-      try {
-        const response = await apiFetch("/api/rezepte?scope=mine");
-        const data = await response.json();
-        const items = (data.rezepte || []).slice(0, 3);
-
-        myContainer.innerHTML = items.length
-          ? items.map((r) => renderRecipeCard(r, { showOwner: false, showEdit: true })).join("")
-          : `
-            <article class="empty-card">
-              <h3>Noch keine eigenen Rezepte</h3>
-              <p>Erstelle dein erstes Rezept oder importiere eines.</p>
-              <a class="button" href="./neues_rezept.html">Rezept erstellen</a>
-            </article>
-          `;
-      } catch (error) {
-        myContainer.innerHTML = `<p>Eigene Rezepte konnten nicht geladen werden.</p>`;
+  try {
+    if (myContainer) {
+      if (getAuthToken()) {
+        const data = await apiFetch("/api/rezepte?scope=mine");
+        const myRecipes = recipeArray(data);
+        myContainer.innerHTML = myRecipes.slice(0, 3).map((recipe) => renderRecipeCard(recipe, { showEdit: true })).join("") || '<div class="empty-note">Noch keine eigenen Rezepte.</div>';
+      } else {
+        myContainer.innerHTML = '<div class="empty-note">Melde dich an, um eigene Rezepte zu sehen.</div>';
       }
     }
-  }
 
-  if (publicContainer) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/rezepte?scope=public`);
-      const data = await response.json();
-      const items = (data.rezepte || []).slice(0, 3);
-
-      publicContainer.innerHTML = items.length
-        ? items.map((r) => renderRecipeCard(r, { showOwner: true, showEdit: false })).join("")
-        : `
-          <article class="empty-card">
-            <h3>Noch keine öffentlichen Rezepte</h3>
-            <p>Geteilte Rezepte erscheinen später hier.</p>
-          </article>
-        `;
-    } catch (error) {
-      publicContainer.innerHTML = `<p>Öffentliche Rezepte konnten nicht geladen werden.</p>`;
+    if (publicContainer) {
+      const data = await apiFetch("/api/rezepte/public");
+      const publicRecipes = recipeArray(data);
+      publicContainer.innerHTML = publicRecipes.slice(0, 3).map((recipe) => renderRecipeCard(recipe, { showEdit: false })).join("") || '<div class="empty-note">Noch keine öffentlichen Rezepte.</div>';
     }
+  } catch (error) {
+    const message = `<div class="empty-note">${escapeHTML(extractErrorMessage(error))}</div>`;
+    if (myContainer) myContainer.innerHTML = message;
+    if (publicContainer) publicContainer.innerHTML = message;
   }
 }
 
-// ==========================================
-// MEINE REZEPTE
-// ==========================================
 async function loadRezepte() {
   const container = document.getElementById("recipe-list-container");
   if (!container) return;
   if (!requireAuth()) return;
 
-  const suche = getQueryParam("suche") || "";
-  const kategorie = getQueryParam("kategorie") || "";
-
   try {
-    const response = await apiFetch(
-      `/api/rezepte?scope=mine&suche=${encodeURIComponent(suche)}&kategorie=${encodeURIComponent(kategorie)}`
-    );
-
-    if (!response.ok) {
-      throw new Error("Rezepte konnten nicht geladen werden");
-    }
-
-    const data = await response.json();
-
-    const searchInput = document.getElementById("suche-input");
-    if (searchInput) searchInput.value = suche;
-
-    const catSelect = document.getElementById("kategorie-select");
-    if (catSelect) {
-      catSelect.innerHTML = `<option value="">Alle Kategorien</option>`;
-
-      (data.kategorien || []).forEach((kat) => {
-        const selected = kat.toLowerCase() === kategorie.toLowerCase() ? "selected" : "";
-        catSelect.innerHTML += `<option value="${escapeHTML(kat)}" ${selected}>${escapeHTML(kat)}</option>`;
-      });
-    }
-
-    const rezepte = data.rezepte || [];
-
-    container.innerHTML = rezepte.length
-      ? rezepte.map((r) => renderRecipeCard(r, { showOwner: false, showEdit: true })).join("")
-      : `
-        <article class="empty-card">
-          <h3>Noch keine eigenen Rezepte gefunden</h3>
-          <p>Erstelle ein neues Rezept oder importiere eines.</p>
-          <a class="button" href="./neues_rezept.html">Rezept erstellen</a>
-        </article>
-      `;
+    cachedOwnRecipes = recipeArray(await apiFetch("/api/rezepte?scope=mine"));
+    populateCategorySelect(cachedOwnRecipes);
+    renderRecipeCollection(container, filterRecipes(cachedOwnRecipes), { showEdit: true, showDelete: true });
   } catch (error) {
-    container.innerHTML = `<p>Fehler beim Laden der Rezepte.</p>`;
-    console.error(error);
+    container.innerHTML = `<div class="empty-note">${escapeHTML(extractErrorMessage(error))}</div>`;
   }
 }
 
-// ==========================================
-// ÖFFENTLICHE REZEPTE
-// ==========================================
 async function loadPublicRezepte() {
   const container = document.getElementById("public-recipe-list-container");
   if (!container) return;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/rezepte?scope=public`);
-
-    if (!response.ok) {
-      throw new Error("Öffentliche Rezepte konnten nicht geladen werden");
-    }
-
-    const data = await response.json();
-    const rezepte = data.rezepte || [];
-
-    container.innerHTML = rezepte.length
-      ? rezepte.map((r) => renderRecipeCard(r, { showOwner: true, showEdit: false })).join("")
-      : `
-        <article class="empty-card">
-          <h3>Noch keine öffentlichen Rezepte</h3>
-          <p>Wenn Nutzer Rezepte teilen, erscheinen sie hier.</p>
-        </article>
-      `;
+    cachedPublicRecipes = recipeArray(await apiFetch("/api/rezepte/public"));
+    renderRecipeCollection(container, filterRecipes(cachedPublicRecipes), { showEdit: false, showDelete: false });
   } catch (error) {
-    container.innerHTML = `<p>Fehler beim Laden der öffentlichen Rezepte.</p>`;
-    console.error(error);
+    container.innerHTML = `<div class="empty-note">${escapeHTML(extractErrorMessage(error))}</div>`;
   }
 }
 
-// ==========================================
-// REZEPTDETAIL / KOCHMODUS
-// ==========================================
-let kochSchritte = [];
-let aktuellerKochSchritt = 0;
-let aktuellesRezept = null;
-let geparsteZutaten = [];
+function bindRecipeFilters() {
+  const search = document.getElementById("search") || document.getElementById("suche-input");
+  const category = document.getElementById("filter-kategorie") || document.getElementById("kategorie-select");
+  const filterForm = search?.closest("form") || category?.closest("form");
+  if (!search && !category) return;
+
+  const params = new URLSearchParams(window.location.search);
+  if (search && params.has("suche")) search.value = params.get("suche") || "";
+  if (category && params.has("kategorie")) category.value = params.get("kategorie") || "";
+
+  const rerender = () => {
+    renderRecipeCollection(document.getElementById("recipe-list-container"), filterRecipes(cachedOwnRecipes), { showEdit: true, showDelete: true });
+    renderRecipeCollection(document.getElementById("public-recipe-list-container"), filterRecipes(cachedPublicRecipes), { showEdit: false, showDelete: false });
+  };
+
+  filterForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    rerender();
+  });
+  search?.addEventListener("input", rerender);
+  category?.addEventListener("input", rerender);
+}
+
+function renderIngredientText(zutat, factor = 1) {
+  const item = typeof zutat === "string" ? parseIngredientLine(zutat) : zutat;
+  if (!item) return "";
+  const number = Number(String(item.menge ?? "").replace(",", "."));
+  const mengeText = Number.isFinite(number) && String(item.menge ?? "").trim() !== ""
+    ? Number((number * factor).toFixed(2)).toString().replace(".", ",")
+    : String(item.menge ?? "");
+  return [mengeText, item.einheit || "", item.name || item.zutat || item.text || ""].filter(Boolean).join(" ");
+}
+
+function normalizeStepForDisplay(step) {
+  if (typeof step === "string") step = parseStepLine(step);
+  return {
+    dauer: Number(step?.dauer || 0),
+    text: step?.schritt || step?.text || ""
+  };
+}
+
+function renderStepText(step) {
+  const normalized = normalizeStepForDisplay(step);
+  const duration = normalized.dauer ? `${normalized.dauer} Min.` : "";
+  return [duration, normalized.text].filter(Boolean).join(" ").trim();
+}
+
+function renderDetailStepItem(step, index) {
+  const normalized = normalizeStepForDisplay(step);
+  const duration = normalized.dauer ? `${normalized.dauer} Min.` : "ohne Zeit";
+  const text = normalized.text || "Kein Arbeitsschritt angegeben.";
+
+  return `
+    <li class="prep-step">
+      <span class="prep-step-number" aria-label="Schritt ${index + 1}">${index + 1}</span>
+      <span class="prep-step-duration">${escapeHTML(duration)}</span>
+      <span class="prep-step-text">${escapeHTML(text)}</span>
+    </li>
+  `;
+}
+
+function renderKochStepContent(step, index, total) {
+  const normalized = normalizeStepForDisplay(step);
+  const duration = normalized.dauer ? `<span class="koch-step-duration">${escapeHTML(`${normalized.dauer} Min.`)}</span>` : "";
+  const text = normalized.text || "Kein Arbeitsschritt angegeben.";
+
+  return `
+    <div class="koch-step-display">
+      <div class="koch-step-kicker">Schritt ${index + 1} von ${total}</div>
+      ${duration}
+      <div class="koch-step-text">${escapeHTML(text)}</div>
+    </div>
+  `;
+}
 
 async function loadRezeptDetail() {
-  const container =
-    document.getElementById("standard-ansicht") ||
-    document.getElementById("detail-container");
-
-  if (!container) return;
+  const title = document.getElementById("detail-titel");
+  if (!title) return;
 
   const id = getQueryParam("id");
-
   if (!id) {
-    container.innerHTML = `<p>Keine Rezept-ID angegeben.</p>`;
+    title.textContent = "Rezept nicht gefunden";
     return;
   }
 
   try {
-    const response = await apiFetch(`/api/rezepte/${id}`);
+    const recipe = normalizeRecipe(await apiFetch(`/api/rezepte/${id}`));
+    currentDetailRecipe = recipe;
 
-    if (!response.ok) {
-      throw new Error("Rezept nicht gefunden oder privat");
+    const currentUsername = getCurrentUsername();
+    const isOwner = currentUsername && recipe.owner_name === currentUsername;
+    const source = recipe.source || "manual";
+    const external = isExternallyImported(source);
+
+    title.textContent = getRecipeTitle(recipe);
+    const categoryContainer = document.getElementById("detail-kategorie") || document.getElementById("detail-tags");
+    if (categoryContainer) {
+      categoryContainer.innerHTML = [
+        ...recipe.kategorie.map((category) => `<span class="badge">${escapeHTML(category)}</span>`),
+        recipe.is_public ? '<span class="badge badge-public">Öffentlich</span>' : '<span class="badge badge-private">Privat</span>',
+        external ? `<span class="badge badge-muted">Import: ${escapeHTML(source)}</span>` : '<span class="badge badge-muted">Eigenes Rezept</span>'
+      ].join("");
     }
 
-    const rezept = await response.json();
-    aktuellesRezept = rezept;
-
-    document.title = `${getRecipeTitle(rezept)} · KochFlow`;
-
-    const titleEl = document.getElementById("detail-titel");
-    if (titleEl) titleEl.textContent = getRecipeTitle(rezept);
-
-    const ownerEl = document.getElementById("detail-owner");
-    if (ownerEl) {
-      ownerEl.innerHTML = `
-        Von <strong>${escapeHTML(rezept.owner_name || "Unbekannt")}</strong>
-        · ${Number(rezept.is_public || 0) === 1 ? "Öffentlich" : "Privat"}
+    const meta = document.getElementById("detail-meta") || document.getElementById("detail-owner");
+    if (meta) {
+      meta.innerHTML = `
+        ${renderMetaItem("clock", "Kochzeit", recipe.dauer ? `${recipe.dauer} Min.` : "keine Angabe")}
+        ${renderMetaItem("user", "Von", recipe.owner_name || "unbekannt")}
+        ${renderMetaItem("calendar", "Hochgeladen", formatDate(recipe.created_at))}
       `;
     }
 
-    const tagsEl = document.getElementById("detail-tags");
-    if (tagsEl) {
-      let tagsHTML = "";
-
-      if (rezept.kategorie) {
-        rezept.kategorie.split(",").forEach((k) => {
-          if (k.trim()) tagsHTML += `<span class="pill">${escapeHTML(k.trim())}</span>`;
-        });
-      }
-
-      tagsHTML += Number(rezept.is_public || 0) === 1
-        ? `<span class="pill public">Öffentlich</span>`
-        : `<span class="pill private">Privat</span>`;
-
-      tagsEl.innerHTML = tagsHTML;
+    const portionen = Number(recipe.portionen || 1);
+    const portionInput = document.getElementById("portionen-input") || document.getElementById("portionen-rechner");
+    if (portionInput) {
+      portionInput.value = portionen;
+      portionInput.dataset.original = String(portionen);
     }
 
-    const portionenInput = document.getElementById("portionen-rechner");
-    if (portionenInput) {
-      portionenInput.value = rezept.portionen || 1;
-      portionenInput.dataset.standard = rezept.portionen || 1;
-    }
-
-    const zutatenList = document.getElementById("detail-zutaten");
-    geparsteZutaten = [];
-
-    if (zutatenList) {
-      zutatenList.innerHTML = "";
-
-      if (rezept.zutaten) {
-        rezept.zutaten.split("\n").forEach((zeile) => {
-          if (!zeile.trim()) return;
-
-          const teile = zeile.split("|");
-
-          if (teile.length === 3) {
-            const menge = teile[0].trim();
-            const einheit = teile[1].trim();
-            const name = teile[2].trim();
-
-            zutatenList.innerHTML += `
-              <li>
-                <strong>
-                  <span class="zutat-menge" data-grundmenge="${escapeHTML(menge)}">${escapeHTML(menge)}</span>
-                  ${escapeHTML(einheit)}
-                </strong>
-                ${escapeHTML(name)}
-              </li>
-            `;
-
-            geparsteZutaten.push({ menge, einheit, name });
-          } else {
-            zutatenList.innerHTML += `<li>${escapeHTML(zeile)}</li>`;
-            geparsteZutaten.push({ menge: "", einheit: "", name: zeile });
-          }
-        });
-      } else {
-        zutatenList.innerHTML = `<li>Keine Zutaten angegeben.</li>`;
-      }
-    }
-
-    kochSchritte = rezept.anleitung
-      ? rezept.anleitung.split("|||").filter((s) => s.trim())
-      : [];
-
-    const standardSchritteContainer = document.getElementById("standard-schritte-liste");
-
-    if (standardSchritteContainer) {
-      standardSchritteContainer.innerHTML = "";
-
-      if (kochSchritte.length > 0) {
-        kochSchritte.forEach((schritt, index) => {
-          const teile = schritt.split(":::");
-          const zeit = teile.length === 2 ? teile[0] : "";
-          const text = teile.length === 2 ? teile[1] : teile[0];
-
-          standardSchritteContainer.innerHTML += `
-            <article class="step-card">
-              <div class="step-number">Schritt ${index + 1}</div>
-              ${zeit ? `<div class="step-time">${escapeHTML(zeit)} Min.</div>` : ""}
-              <p>${escapeHTML(text)}</p>
-            </article>
-          `;
-        });
-      } else {
-        standardSchritteContainer.innerHTML = `<p>Keine Anleitung vorhanden.</p>`;
-      }
-    }
-
-    const isOwner = rezept.owner_name === getCurrentUser();
+    renderDetailIngredients(1);
+    renderDetailSteps();
 
     const ownerControls = document.getElementById("owner-controls");
-    if (ownerControls) ownerControls.style.display = isOwner ? "flex" : "none";
+    if (ownerControls) {
+      ownerControls.hidden = !isOwner;
+      ownerControls.style.display = isOwner ? "flex" : "none";
+    }
 
-    const visibilityBtn = document.getElementById("btn-visibility");
-    if (visibilityBtn) {
-      visibilityBtn.textContent =
-        Number(rezept.is_public || 0) === 1 ? "Wieder privat machen" : "Öffentlich teilen";
+    const editLink = document.getElementById("edit-rezept-link");
+    if (editLink) editLink.href = `bearbeiten.html?id=${id}`;
+
+    const visibilityButton = document.getElementById("btn-visibility");
+    if (visibilityButton) {
+      visibilityButton.textContent = recipe.is_public ? "Privat machen" : "Öffentlich machen";
+      visibilityButton.disabled = external;
+      visibilityButton.title = external ? "Importierte Rezepte bleiben privat." : "";
     }
   } catch (error) {
-    container.innerHTML = `<p>Fehler beim Laden des Rezepts.</p>`;
-    console.error(error);
+    title.textContent = "Rezept konnte nicht geladen werden";
+    const detail = document.getElementById("standard-ansicht");
+    if (detail) detail.innerHTML = `<div class="empty-note">${escapeHTML(extractErrorMessage(error))}</div>`;
   }
+}
+
+function renderDetailIngredients(factor = 1) {
+  const list = document.getElementById("detail-zutaten");
+  if (!list || !currentDetailRecipe) return;
+  list.innerHTML = currentDetailRecipe.zutaten.map((zutat) => `<li>${escapeHTML(renderIngredientText(zutat, factor))}</li>`).join("") || '<li>Keine Zutaten angegeben.</li>';
+}
+
+function renderDetailSteps() {
+  const list = document.getElementById("standard-schritte-liste");
+  if (!list || !currentDetailRecipe) return;
+  list.innerHTML = currentDetailRecipe.anleitung.map(renderDetailStepItem).join("") || '<li class="empty-note">Keine Schritte angegeben.</li>';
 }
 
 function portionenUmrechnen() {
-  const input = document.getElementById("portionen-rechner");
+  const input = document.getElementById("portionen-input") || document.getElementById("portionen-rechner");
   if (!input) return;
-
-  const neuePortionen = Number(input.value);
-  const standardPortionen = Number(input.dataset.standard || 1);
-
-  if (!neuePortionen || !standardPortionen) return;
-
-  document.querySelectorAll(".zutat-menge").forEach((feld) => {
-    const grundMenge = Number(String(feld.dataset.grundmenge || "").replace(",", "."));
-    if (Number.isNaN(grundMenge)) return;
-
-    const neueMenge = (grundMenge / standardPortionen) * neuePortionen;
-    feld.textContent = Number.isInteger(neueMenge)
-      ? String(neueMenge)
-      : neueMenge.toFixed(1).replace(".", ",");
-  });
+  const original = Number(input.dataset.original || currentDetailRecipe?.portionen || 1) || 1;
+  const requested = Number(input.value || original) || original;
+  renderDetailIngredients(requested / original);
 }
 
 function startKochmodus() {
-  if (kochSchritte.length === 0) {
-    alert("Dieses Rezept hat keine Anleitungsschritte.");
+  if (!currentDetailRecipe) return;
+  currentStepIndex = 0;
+  document.getElementById("standard-ansicht")?.setAttribute("hidden", "hidden");
+  const overlay = document.getElementById("kochmodus-overlay");
+  if (overlay) {
+    overlay.hidden = false;
+    overlay.style.display = "flex";
+  }
+  renderKochStep();
+}
+
+function closeKochmodus() {
+  const overlay = document.getElementById("kochmodus-overlay");
+  if (overlay) {
+    overlay.hidden = true;
+    overlay.style.display = "none";
+  }
+  document.getElementById("standard-ansicht")?.removeAttribute("hidden");
+}
+
+function renderKochStep() {
+  if (!currentDetailRecipe) return;
+  const steps = currentDetailRecipe.anleitung;
+  const text = document.getElementById("koch-schritt-text");
+  const progress = document.getElementById("koch-fortschritt");
+  const prev = document.getElementById("btn-prev-step") || document.getElementById("btn-koch-zurueck");
+  const next = document.getElementById("btn-next-step") || document.getElementById("btn-koch-weiter");
+
+  if (text) {
+    if (steps.length) {
+      text.innerHTML = renderKochStepContent(steps[currentStepIndex], currentStepIndex, steps.length);
+    } else {
+      text.textContent = "Keine Schritte angegeben.";
+    }
+  }
+  if (progress) progress.textContent = steps.length ? `${currentStepIndex + 1} / ${steps.length}` : "0 / 0";
+  if (prev) prev.disabled = currentStepIndex <= 0;
+  if (next) next.textContent = currentStepIndex >= steps.length - 1 ? "Fertig" : "Weiter";
+}
+
+function nextStep() {
+  const steps = currentDetailRecipe?.anleitung || [];
+  if (!steps.length || currentStepIndex >= steps.length - 1) {
+    closeKochmodus();
     return;
   }
-
-  const standardAnsicht = document.getElementById("standard-ansicht");
-  if (standardAnsicht) standardAnsicht.style.display = "none";
-
-  const pageHeader = document.querySelector(".page-header");
-  if (pageHeader) pageHeader.style.display = "none";
-
-  const nav = document.querySelector(".app-nav");
-  if (nav) nav.style.display = "none";
-
-  const overlay = document.getElementById("kochmodus-overlay");
-  if (overlay) overlay.style.display = "flex";
-
-  aktuellerKochSchritt = 0;
-  renderAktuellenKochSchritt();
+  currentStepIndex += 1;
+  renderKochStep();
 }
 
-function beendeKochmodus() {
-  const overlay = document.getElementById("kochmodus-overlay");
-  if (overlay) overlay.style.display = "none";
-
-  const standardAnsicht = document.getElementById("standard-ansicht");
-  if (standardAnsicht) standardAnsicht.style.display = "";
-
-  const pageHeader = document.querySelector(".page-header");
-  if (pageHeader) pageHeader.style.display = "";
-
-  const nav = document.querySelector(".app-nav");
-  if (nav) nav.style.display = "";
-}
-
-function renderAktuellenKochSchritt() {
-  const schritt = kochSchritte[aktuellerKochSchritt];
-  if (!schritt) return;
-
-  const teile = schritt.split(":::");
-  const zeit = teile.length === 2 ? teile[0] : "";
-  const text = teile.length === 2 ? teile[1] : teile[0];
-
-  const textEl = document.getElementById("koch-schritt-text");
-  if (textEl) textEl.textContent = text;
-
-  const progressEl = document.getElementById("koch-fortschritt");
-  if (progressEl) progressEl.textContent = `${aktuellerKochSchritt + 1} / ${kochSchritte.length}`;
-
-  const textLower = text.toLowerCase();
-
-  const erkannteZutaten = geparsteZutaten.filter((zutat) => {
-    if (!zutat.name) return false;
-
-    const nameLower = zutat.name.toLowerCase();
-    const worte = nameLower.split(" ").filter((wort) => wort.length > 3);
-
-    if (worte.length === 0) {
-      return textLower.includes(nameLower);
-    }
-
-    return worte.some((wort) => textLower.includes(wort));
-  });
-
-  const zeitHtml = zeit ? `<span class="pill">${escapeHTML(zeit)} Min.</span>` : "";
-
-  const zutatenHtml = erkannteZutaten
-    .map((z) => `<span class="pill">${escapeHTML(z.menge)} ${escapeHTML(z.einheit)} ${escapeHTML(z.name)}</span>`)
-    .join("");
-
-  const hinweisEl = document.getElementById("koch-zutaten-hinweis");
-  if (hinweisEl) hinweisEl.innerHTML = `${zeitHtml}${zutatenHtml}`;
-
-  const btnZurueck = document.getElementById("btn-koch-zurueck");
-  if (btnZurueck) btnZurueck.disabled = aktuellerKochSchritt === 0;
-
-  const btnWeiter = document.getElementById("btn-koch-weiter");
-
-  if (btnWeiter) {
-    if (aktuellerKochSchritt >= kochSchritte.length - 1) {
-      btnWeiter.textContent = "Fertig";
-      btnWeiter.onclick = beendeKochmodus;
-    } else {
-      btnWeiter.textContent = "Weiter";
-      btnWeiter.onclick = naechsterSchritt;
-    }
-  }
-}
-
-function naechsterSchritt() {
-  if (aktuellerKochSchritt < kochSchritte.length - 1) {
-    aktuellerKochSchritt++;
-    renderAktuellenKochSchritt();
-  }
-}
-
-function vorherigerSchritt() {
-  if (aktuellerKochSchritt > 0) {
-    aktuellerKochSchritt--;
-    renderAktuellenKochSchritt();
+function prevStep() {
+  if (currentStepIndex > 0) {
+    currentStepIndex -= 1;
+    renderKochStep();
   }
 }
 
 async function toggleRezeptVisibility() {
-  const id = getQueryParam("id");
-  if (!id || !aktuellesRezept) return;
+  if (!currentDetailRecipe) return;
+  if (isExternallyImported(currentDetailRecipe.source)) {
+    alert("Importierte Rezepte bleiben privat und können nicht öffentlich markiert werden.");
+    return;
+  }
 
-  const nextPublic = Number(aktuellesRezept.is_public || 0) !== 1;
-
+  const newValue = !currentDetailRecipe.is_public;
   try {
-    const response = await apiFetch(`/api/rezepte/${id}/visibility`, {
+    await apiFetch(`/api/rezepte/${currentDetailRecipe.id}/visibility`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_public: nextPublic }),
+      body: JSON.stringify({ is_public: newValue })
     });
-
-    const result = await response.json();
-
-    if (!response.ok || !result.success) {
-      throw new Error(extractErrorMessage(result, "Sichtbarkeit konnte nicht geändert werden"));
-    }
-
-    location.reload();
+    currentDetailRecipe.is_public = newValue;
+    await loadRezeptDetail();
   } catch (error) {
-    alert("Fehler: " + error.message);
+    alert(extractErrorMessage(error));
   }
 }
 
-async function rezeptLoeschen() {
-  const id = getQueryParam("id");
-  if (!id) return alert("Keine Rezept-ID gefunden.");
-
-  if (!confirm("Möchtest du dieses Rezept wirklich löschen?")) return;
+async function rezeptLoeschen(id = null) {
+  const recipeId = id || currentDetailRecipe?.id || getQueryParam("id");
+  if (!recipeId) return;
+  if (!confirm("Dieses Rezept wirklich löschen?")) return;
 
   try {
-    const response = await apiFetch(`/api/rezepte/${id}`, {
-      method: "DELETE",
-    });
-
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok || result.success === false) {
-      throw new Error(extractErrorMessage(result, "Löschen fehlgeschlagen"));
-    }
-
-    window.location.href = "./rezepte.html";
+    await apiFetch(`/api/rezepte/${recipeId}`, { method: "DELETE" });
+    window.location.href = "rezepte.html";
   } catch (error) {
-    alert("Fehler beim Löschen: " + error.message);
+    alert(extractErrorMessage(error));
   }
 }
 
-// ==========================================
-// EINKAUFSLISTE
-// ==========================================
+function ensureShoppingListControls(hasEntries = false) {
+  const targetList = document.getElementById("einkauf-zutaten");
+  if (!targetList) return;
+  const panel = targetList.closest(".form-panel, .detail-panel, .panel, section, article") || targetList.parentElement;
+  if (!panel || document.getElementById("btn-einkauf-leeren")) {
+    const existing = document.getElementById("btn-einkauf-leeren");
+    if (existing) existing.hidden = !hasEntries;
+    return;
+  }
+
+  const header = panel.querySelector("h2") || panel.firstElementChild;
+  const wrapper = document.createElement("div");
+  wrapper.className = "shopping-panel-head";
+  wrapper.innerHTML = `
+    <div></div>
+    <button type="button" id="btn-einkauf-leeren" class="icon-action icon-action-danger icon-trash" aria-label="Einkaufsliste leeren" title="Einkaufsliste leeren">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v9h-2V9Zm4 0h2v9h-2V9ZM7 9h10l-1 11H8L7 9Z"></path>
+      </svg>
+      <span class="shopping-clear-text">Liste leeren</span>
+    </button>
+  `;
+
+  if (header && header.tagName?.toLowerCase() === "h2") {
+    wrapper.firstElementChild.replaceWith(header.cloneNode(true));
+    header.replaceWith(wrapper);
+  } else {
+    panel.prepend(wrapper);
+  }
+
+  const button = document.getElementById("btn-einkauf-leeren");
+  if (button) {
+    button.hidden = !hasEntries;
+    button.addEventListener("click", clearEinkaufsliste);
+  }
+}
+
+async function clearEinkaufsliste() {
+  if (!requireAuth()) return;
+  if (!confirm("Gesamte Einkaufsliste wirklich leeren?")) return;
+  try {
+    await apiFetch("/api/einkaufsliste", { method: "DELETE" });
+    await loadEinkaufsliste();
+    showToast("Einkaufsliste wurde geleert.");
+  } catch (error) {
+    showToast(extractErrorMessage(error), "error");
+  }
+}
+
 async function loadEinkaufsliste() {
   const listRezepte = document.getElementById("einkauf-rezepte");
   const listZutaten = document.getElementById("einkauf-zutaten");
   const listManuell = document.getElementById("einkauf-manuell");
-  const manuellHeader = document.getElementById("manuell-header");
-
   if (!listRezepte && !listZutaten && !listManuell) return;
   if (!requireAuth()) return;
 
   try {
-    const response = await apiFetch("/api/einkaufsliste");
+    const data = await apiFetch("/api/einkaufsliste");
+    const recipes = data?.rezepte || [];
+    const recipeIngredients = data?.zutaten || [];
+    const manualIngredients = data?.manuell || [];
 
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      throw new Error(extractErrorMessage(result, "Einkaufsliste konnte nicht geladen werden"));
-    }
-
-    const data = result;
+    ensureShoppingListControls(Boolean(recipes.length || recipeIngredients.length || manualIngredients.length));
 
     if (listRezepte) {
-      listRezepte.innerHTML = "";
-
-      if (data.rezepte && data.rezepte.length > 0) {
-        const rezepteBox = document.createElement("div");
-        rezepteBox.className = "shopping-recipe-tags";
-
-        data.rezepte.forEach((titel) => {
-          const badge = document.createElement("span");
-          badge.className = "pill shopping-recipe-pill";
-
-          const titleSpan = document.createElement("span");
-          titleSpan.textContent = titel;
-
-          const removeButton = document.createElement("button");
-          removeButton.type = "button";
-          removeButton.className = "small-action danger";
-          removeButton.textContent = "×";
-          removeButton.setAttribute("aria-label", `${titel} entfernen`);
-          removeButton.addEventListener("click", () => removeRezeptFromEinkaufsliste(titel));
-
-          badge.appendChild(titleSpan);
-          badge.appendChild(removeButton);
-          rezepteBox.appendChild(badge);
-        });
-
-        listRezepte.appendChild(rezepteBox);
-      } else {
-        listRezepte.innerHTML = `<p class="empty-note">Keine Rezepte auf der Einkaufsliste.</p>`;
-      }
+      listRezepte.innerHTML = recipes.map((recipe) => {
+        const title = recipe.titel || recipe.title || recipe;
+        const removeArg = recipe.id
+          ? String(Number(recipe.id))
+          : JSON.stringify(String(title)).replaceAll('"', "&quot;");
+        return `
+          <li class="shopping-recipe-item">
+            <span>${escapeHTML(title)}</span>
+            ${renderTrashButton(`removeRezeptFromEinkaufsliste(${removeArg})`, "Rezept aus Einkaufsliste entfernen")}
+          </li>
+        `;
+      }).join("") || '<li class="empty-note">Noch keine Rezepte in der Einkaufsliste.</li>';
     }
 
-    if (listZutaten || listRezepte) {
-      const targetList = listZutaten || listRezepte;
+    if (listZutaten) {
+      const recipeSection = recipeIngredients.length ? `
+        <li class="shopping-section">
+          <h3><span>Aus Rezepten</span></h3>
+          <ul class="shopping-list shopping-list-clean">
+            ${recipeIngredients.map((item, index) => renderShoppingIngredientRow(item, "recipe", index)).join("")}
+          </ul>
+        </li>
+      ` : "";
 
-      if (listZutaten) {
-        listZutaten.innerHTML = "";
-      }
+      const manualSection = manualIngredients.length ? `
+        <li class="shopping-section">
+          <h3><span>Manuell</span></h3>
+          <ul class="shopping-list shopping-list-clean">
+            ${manualIngredients.map((item, index) => renderShoppingIngredientRow(item, "manual", index)).join("")}
+          </ul>
+        </li>
+      ` : "";
 
-      if (data.zutaten && data.zutaten.length > 0) {
-        data.zutaten.forEach((z) => {
-          const li = document.createElement("li");
-          li.className = "shopping-ingredient-item";
-
-          const einheit = z.einheit ? ` ${z.einheit}` : "";
-          const menge = z.menge ? `${z.menge}${einheit} ` : "";
-
-          li.innerHTML = `
-            <label class="shopping-check">
-              <input type="checkbox">
-              <span><strong>${escapeHTML(menge)}</strong>${escapeHTML(z.name)}</span>
-            </label>
-          `;
-
-          targetList.appendChild(li);
-        });
-      } else if (listZutaten) {
-        listZutaten.innerHTML = `<li>Die Zutatenliste ist leer.</li>`;
-      }
+      listZutaten.innerHTML = (recipeSection || manualSection)
+        ? `${recipeSection}${manualSection}`
+        : '<li class="empty-note">Keine Zutaten vorhanden.</li>';
+      bindShoppingCheckboxes(listZutaten);
     }
 
     if (listManuell) {
       listManuell.innerHTML = "";
-
-      if (data.manuell && data.manuell.length > 0) {
-        if (manuellHeader) manuellHeader.style.display = "block";
-
-        data.manuell.forEach((item) => {
-          const li = document.createElement("li");
-          li.className = "shopping-recipe-item";
-
-          const label = document.createElement("label");
-          label.className = "shopping-check";
-          label.innerHTML = `
-            <input type="checkbox">
-            <span>${escapeHTML(item.name)}</span>
-          `;
-
-          const removeButton = document.createElement("button");
-          removeButton.type = "button";
-          removeButton.className = "small-action danger";
-          removeButton.textContent = "Entfernen";
-          removeButton.addEventListener("click", () => removeManuellFromEinkaufsliste(item.id));
-
-          li.appendChild(label);
-          li.appendChild(removeButton);
-          listManuell.appendChild(li);
-        });
-      } else {
-        if (manuellHeader) manuellHeader.style.display = "none";
-      }
+      listManuell.hidden = true;
     }
   } catch (error) {
-    console.error(error);
-
-    if (listRezepte) {
-      listRezepte.innerHTML = `<li>Fehler beim Laden der Einkaufsliste.</li>`;
-    }
+    const message = `<li class="empty-note">${escapeHTML(extractErrorMessage(error))}</li>`;
+    if (listRezepte) listRezepte.innerHTML = message;
+    if (listZutaten) listZutaten.innerHTML = message;
+    if (listManuell) { listManuell.hidden = false; listManuell.innerHTML = message; }
   }
 }
 
 async function addToEinkaufsliste(rezeptId) {
   if (!requireAuth()) return;
-
   try {
-    const response = await apiFetch(`/api/einkaufsliste/${encodeURIComponent(rezeptId)}`, {
-      method: "POST",
-    });
-
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok || result.success === false) {
-      throw new Error(extractErrorMessage(result, "Fehler beim Hinzufügen"));
-    }
-
-    alert("Zutaten wurden zur Einkaufsliste hinzugefügt.");
+    await apiFetch(`/api/einkaufsliste/${rezeptId}`, { method: "POST" });
+    await loadEinkaufsliste();
+    showToast("Rezept wurde zur Einkaufsliste hinzugefügt.");
   } catch (error) {
-    alert("Fehler beim Hinzufügen zur Einkaufsliste: " + error.message);
+    showToast(extractErrorMessage(error), "error");
   }
 }
 
 async function addRezeptToEinkaufsliste() {
-  const id = getQueryParam("id");
-  if (!id) return alert("Keine Rezept-ID gefunden.");
-  await addToEinkaufsliste(id);
+  const input = document.getElementById("rezept-id");
+  const rezeptId = input?.value || currentDetailRecipe?.id || getQueryParam("id");
+  if (!rezeptId) return;
+  await addToEinkaufsliste(rezeptId);
 }
 
-async function removeRezeptFromEinkaufsliste(titel) {
+async function removeRezeptFromEinkaufsliste(rezeptIdOrTitle) {
+  if (!requireAuth()) return;
+  const payload = typeof rezeptIdOrTitle === "number" ? { rezept_id: rezeptIdOrTitle } : { titel: String(rezeptIdOrTitle || "") };
   try {
-    const response = await apiFetch("/api/einkaufsliste/entfernen_rezept", {
+    await apiFetch("/api/einkaufsliste/entfernen_rezept", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ titel }),
+      body: JSON.stringify(payload)
     });
-
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok || result.success === false) {
-      throw new Error(extractErrorMessage(result, "Entfernen fehlgeschlagen"));
-    }
-
     await loadEinkaufsliste();
+    showToast("Rezept wurde aus der Einkaufsliste entfernt.");
   } catch (error) {
-    console.error("Fehler beim Entfernen des Rezepts:", error);
-    alert("Fehler beim Entfernen des Rezepts: " + error.message);
+    showToast(extractErrorMessage(error), "error");
+  }
+}
+
+async function removeRecipeIngredientFromEinkaufsliste(ids) {
+  if (!requireAuth()) return;
+  const cleanIds = (Array.isArray(ids) ? ids : [ids]).map(Number).filter((value) => value > 0);
+  if (!cleanIds.length) return;
+
+  try {
+    await apiFetch("/api/einkaufsliste/entfernen_zutat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: cleanIds })
+    });
+    await loadEinkaufsliste();
+    showToast("Zutat wurde aus der Einkaufsliste entfernt.");
+  } catch (error) {
+    showToast(extractErrorMessage(error), "error");
   }
 }
 
 async function removeManuellFromEinkaufsliste(id) {
+  if (!requireAuth()) return;
   try {
-    const itemId = Number(id);
-
-    if (!Number.isInteger(itemId)) {
-      throw new Error("Manueller Eintrag hat keine gültige ID.");
-    }
-
-    const response = await apiFetch(`/api/einkaufsliste/manuell/${itemId}`, {
-      method: "DELETE",
-    });
-
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok || result.success === false) {
-      throw new Error(extractErrorMessage(result, "Löschen fehlgeschlagen"));
-    }
-
+    await apiFetch(`/api/einkaufsliste/manuell/${id}`, { method: "DELETE" });
     await loadEinkaufsliste();
+    showToast("Manueller Eintrag wurde entfernt.");
   } catch (error) {
-    console.error("Fehler beim Löschen des manuellen Eintrags:", error);
-    alert("Fehler beim Löschen: " + error.message);
+    showToast(extractErrorMessage(error), "error");
   }
 }
 
 function initManualShoppingForm() {
-  const formManuell = document.getElementById("form-einkauf-manuell");
-  if (!formManuell) return;
-
-  formManuell.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  const form = document.getElementById("form-einkauf-manuell");
+  if (!form) return;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
     if (!requireAuth()) return;
-
     const input = document.getElementById("manuell-input");
-    const name = input?.value.trim() || "";
-
-    if (!name) return;
+    const text = (input?.value || "").trim();
+    if (!text) return;
 
     try {
-      const response = await apiFetch("/api/einkaufsliste/manuell", {
+      await apiFetch("/api/einkaufsliste/manuell", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name: text, text })
       });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result.success === false) {
-        throw new Error(extractErrorMessage(result, "Eintrag konnte nicht hinzugefügt werden"));
-      }
-
       input.value = "";
       await loadEinkaufsliste();
+      showToast("Manueller Eintrag wurde hinzugefügt.");
     } catch (error) {
-      alert("Fehler beim Hinzufügen: " + error.message);
+      showToast(extractErrorMessage(error), "error");
     }
   });
 }
 
-// ==========================================
-// FORMULAR-HELFER
-// ==========================================
-function clearInputs(element) {
-  element.querySelectorAll("input, textarea").forEach((input) => {
-    if (input.type === "checkbox") {
-      input.checked = false;
-    } else {
-      input.value = "";
-    }
+function clearInputs(row) {
+  row.querySelectorAll("input, textarea, select").forEach((field) => {
+    if (field.type === "checkbox") field.checked = false;
+    else field.value = "";
   });
 }
 
-function cloneFirstRow(containerId, fallbackHTML) {
+function cloneFirstRow(containerId) {
   const container = document.getElementById(containerId);
-  if (!container) return;
+  const first = container?.querySelector(".dynamic-row");
+  if (!container || !first) return null;
+  const clone = first.cloneNode(true);
+  clearInputs(clone);
+  container.appendChild(clone);
+  return clone;
+}
 
-  if (container.firstElementChild) {
-    const neueZeile = container.firstElementChild.cloneNode(true);
-    clearInputs(neueZeile);
-    container.appendChild(neueZeile);
+function addZutatZeile() { cloneFirstRow("zutaten-container"); }
+function addSchrittZeile() { cloneFirstRow("schritte-container"); }
+function addKategorieZeile() { cloneFirstRow("kategorie-container"); }
+
+function removeZeile(button) {
+  const row = button.closest(".dynamic-row");
+  const container = row?.parentElement;
+  if (!row || !container) return;
+  if (container.querySelectorAll(".dynamic-row").length <= 1) {
+    clearInputs(row);
     return;
   }
-
-  container.insertAdjacentHTML("beforeend", fallbackHTML);
+  row.remove();
 }
 
-function addZutatZeile() {
-  cloneFirstRow(
-    "zutaten-container",
-    `
-      <div class="form-row">
-        <input type="text" name="zutaten_menge[]" placeholder="Menge">
-        <input type="text" name="zutaten_einheit[]" placeholder="Einheit">
-        <input type="text" name="zutaten_name[]" placeholder="Zutat" required>
-        <button type="button" class="ghost" onclick="removeZeile(this)">Entfernen</button>
-      </div>
-    `
-  );
+function collectRecipeFormData(form) {
+  const data = new FormData(form);
+  const externalNote = document.getElementById("import-public-note");
+  const source = form?.dataset?.importSource || "";
+  if (source) data.set("source", source);
+  if ((externalNote && !externalNote.hidden) || isExternallyImported(source)) data.set("is_public", "0");
+  return data;
 }
 
-function addSchrittZeile() {
-  cloneFirstRow(
-    "schritte-container",
-    `
-      <div class="form-row">
-        <input type="number" name="anleitung_dauer[]" placeholder="Min.">
-        <textarea name="anleitung_schritt[]" placeholder="Was ist zu tun?" required></textarea>
-        <button type="button" class="ghost" onclick="removeZeile(this)">Entfernen</button>
-      </div>
-    `
-  );
-}
+function fillRecipeFormFromDraft(form, draft) {
+  if (!form || !draft) return;
+  const recipe = normalizeRecipe(draft);
+  form.dataset.importSource = recipe.source || "external";
 
-function addKategorieZeile() {
-  cloneFirstRow(
-    "kategorie-container",
-    `
-      <div class="form-row">
-        <input type="text" name="kategorie[]" placeholder="z. B. Vegetarisch">
-        <button type="button" class="ghost" onclick="removeZeile(this)">Entfernen</button>
-      </div>
-    `
-  );
-}
+  const title = document.getElementById("titel");
+  const portions = document.getElementById("portionen");
+  if (title) title.value = recipe.titel || recipe.title || "";
+  if (portions) portions.value = recipe.portionen || 1;
 
-function removeZeile(element) {
-  const zeile = element.closest(".form-row") || element.parentElement;
-  if (!zeile) return;
+  fillRows("kategorie-container", recipe.kategorie, (row, category) => {
+    const input = row.querySelector('input[name="kategorie[]"]');
+    if (input) input.value = category || "";
+  });
 
-  const container = zeile.parentElement;
+  fillRows("zutaten-container", recipe.zutaten, (row, zutat) => {
+    const amount = row.querySelector('input[name="zutaten_menge[]"]');
+    const unit = row.querySelector('input[name="zutaten_einheit[]"]');
+    const name = row.querySelector('input[name="zutaten_name[]"]');
+    if (amount) amount.value = zutat?.menge ?? "";
+    if (unit) unit.value = zutat?.einheit ?? "";
+    if (name) name.value = zutat?.name ?? zutat?.zutat ?? zutat ?? "";
+  });
 
-  if (container && container.children.length > 1) {
-    zeile.remove();
-  } else {
-    clearInputs(zeile);
+  fillRows("schritte-container", recipe.anleitung, (row, step) => {
+    const duration = row.querySelector('input[name="anleitung_dauer[]"]');
+    const text = row.querySelector('textarea[name="anleitung_schritt[]"]');
+    if (duration) duration.value = step?.dauer ?? "";
+    if (text) text.value = step?.schritt ?? step?.text ?? step ?? "";
+  });
+
+  const publicCheckbox = document.getElementById("is_public");
+  if (publicCheckbox) {
+    publicCheckbox.checked = false;
+    publicCheckbox.disabled = isExternallyImported(recipe.source) || recipe.source === "text";
+  }
+
+  const visibilitySection = document.querySelector(".visibility-section");
+  let note = document.getElementById("import-public-note");
+  if (!note && visibilitySection) {
+    note = document.createElement("p");
+    note.id = "import-public-note";
+    note.className = "message info";
+    visibilitySection.appendChild(note);
+  }
+  if (note) {
+    note.hidden = false;
+    note.textContent = "Importiertes Rezept: Bitte prüfe die Daten. Gespeichert wird erst, wenn du unten auf Rezept speichern klickst.";
   }
 }
 
-// ==========================================
-// NEUES REZEPT
-// ==========================================
+function applyPendingImportDraft(form) {
+  const draft = getImportDraft();
+  if (!draft) return;
+  fillRecipeFormFromDraft(form, draft);
+}
+
 function initCreateForm() {
-  const form = document.getElementById("form-neues-rezept");
+  const form = document.getElementById("form-neu") || document.getElementById("form-neues-rezept");
   if (!form) return;
   if (!requireAuth()) return;
+  applyPendingImportDraft(form);
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const btn = e.submitter;
-    const formData = new FormData(form);
-
-    setButtonLoading(btn, "Speichere...");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const submit = form.querySelector('button[type="submit"]');
+    setButtonLoading(submit, "Speichert...");
 
     try {
-      const response = await apiFetch("/api/rezepte", {
+      const recipe = await apiFetch("/api/rezepte", {
         method: "POST",
-        body: formData,
+        body: collectRecipeFormData(form)
       });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(extractErrorMessage(result, "Speichern fehlgeschlagen"));
-      }
-
-      window.location.href = `./rezepte_detail.html?id=${encodeURIComponent(result.id)}`;
+      clearImportDraft();
+      window.location.href = `rezepte_detail.html?id=${recipe.id}`;
     } catch (error) {
-      alert("Fehler beim Speichern: " + error.message);
-      resetButton(btn);
+      alert(extractErrorMessage(error));
+      resetButton(submit);
     }
   });
 }
 
-// ==========================================
-// REZEPT BEARBEITEN
-// ==========================================
 async function loadBearbeitenForm() {
   const form = document.getElementById("form-bearbeiten");
   if (!form) return;
   if (!requireAuth()) return;
 
   const id = getQueryParam("id");
-
   if (!id) {
-    alert("Keine Rezept-ID gefunden.");
+    alert("Keine Rezept-ID angegeben.");
+    window.location.href = "rezepte.html";
     return;
   }
 
+  const deleteButton = document.getElementById("btn-rezept-loeschen-edit");
+  if (deleteButton) deleteButton.addEventListener("click", () => rezeptLoeschen(id));
+
   try {
-    const response = await apiFetch(`/api/rezepte/${id}`);
+    const recipe = normalizeRecipe(await apiFetch(`/api/rezepte/${id}`));
+    currentDetailRecipe = recipe;
+    document.getElementById("titel").value = recipe.titel || "";
+    document.getElementById("portionen").value = recipe.portionen || 1;
 
-    if (!response.ok) {
-      throw new Error("Rezept konnte nicht geladen werden");
-    }
-
-    const rezept = await response.json();
-
-    const titelInput = document.getElementById("titel");
-    if (titelInput) titelInput.value = getRecipeTitle(rezept);
-
-    const portionenInput = document.getElementById("portionen");
-    if (portionenInput) portionenInput.value = rezept.portionen || 1;
-
-    const publicInput = form.querySelector('input[name="is_public"]');
-    if (publicInput) publicInput.checked = Number(rezept.is_public || 0) === 1;
-
-    const katContainer = document.getElementById("kategorie-container");
-    if (katContainer) {
-      katContainer.innerHTML = "";
-
-      const kats = (rezept.kategorie || "").split(",").map((k) => k.trim()).filter(Boolean);
-
-      if (kats.length) {
-        kats.forEach((k) => {
-          katContainer.insertAdjacentHTML(
-            "beforeend",
-            `
-              <div class="form-row">
-                <input type="text" name="kategorie[]" value="${escapeHTML(k)}" placeholder="z. B. Vegetarisch">
-                <button type="button" class="ghost" onclick="removeZeile(this)">Entfernen</button>
-              </div>
-            `
-          );
-        });
-      } else {
-        addKategorieZeile();
-      }
-    }
-
-    const zutatenContainer = document.getElementById("zutaten-container");
-    if (zutatenContainer) {
-      zutatenContainer.innerHTML = "";
-
-      const zutaten = (rezept.zutaten || "").split("\n").filter((z) => z.trim());
-
-      if (zutaten.length) {
-        zutaten.forEach((zeile) => {
-          const teile = zeile.split("|");
-          const menge = teile.length === 3 ? teile[0] : "";
-          const einheit = teile.length === 3 ? teile[1] : "";
-          const name = teile.length === 3 ? teile[2] : zeile;
-
-          zutatenContainer.insertAdjacentHTML(
-            "beforeend",
-            `
-              <div class="form-row">
-                <input type="text" name="zutaten_menge[]" value="${escapeHTML(menge)}" placeholder="Menge">
-                <input type="text" name="zutaten_einheit[]" value="${escapeHTML(einheit)}" placeholder="Einheit">
-                <input type="text" name="zutaten_name[]" value="${escapeHTML(name)}" placeholder="Zutat" required>
-                <button type="button" class="ghost" onclick="removeZeile(this)">Entfernen</button>
-              </div>
-            `
-          );
-        });
-      } else {
-        addZutatZeile();
-      }
-    }
-
-    const schritteContainer = document.getElementById("schritte-container");
-    if (schritteContainer) {
-      schritteContainer.innerHTML = "";
-
-      const schritte = (rezept.anleitung || "").split("|||").filter((s) => s.trim());
-
-      if (schritte.length) {
-        schritte.forEach((schritt) => {
-          const teile = schritt.split(":::");
-          const zeit = teile.length === 2 ? teile[0] : "";
-          const text = teile.length === 2 ? teile[1] : teile[0];
-
-          schritteContainer.insertAdjacentHTML(
-            "beforeend",
-            `
-              <div class="form-row">
-                <input type="number" name="anleitung_dauer[]" value="${escapeHTML(zeit)}" placeholder="Min.">
-                <textarea name="anleitung_schritt[]" placeholder="Was ist zu tun?" required>${escapeHTML(text)}</textarea>
-                <button type="button" class="ghost" onclick="removeZeile(this)">Entfernen</button>
-              </div>
-            `
-          );
-        });
-      } else {
-        addSchrittZeile();
-      }
-    }
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const btn = e.submitter;
-      const formData = new FormData(form);
-
-      setButtonLoading(btn, "Aktualisiere...");
-
-      try {
-        const updateResponse = await apiFetch(`/api/rezepte/${id}`, {
-          method: "PUT",
-          body: formData,
-        });
-
-        const result = await updateResponse.json();
-
-        if (!updateResponse.ok || !result.success) {
-          throw new Error(extractErrorMessage(result, "Aktualisieren fehlgeschlagen"));
-        }
-
-        window.location.href = `./rezepte_detail.html?id=${encodeURIComponent(id)}`;
-      } catch (error) {
-        alert("Fehler beim Aktualisieren: " + error.message);
-        resetButton(btn);
-      }
+    fillRows("kategorie-container", recipe.kategorie, (row, category) => {
+      const input = row.querySelector('input[name="kategorie[]"]');
+      if (input) input.value = category || "";
     });
-  } catch (error) {
-    alert("Fehler beim Laden der Bearbeitungsdaten: " + error.message);
-    console.error(error);
-  }
-}
 
-// ==========================================
-// IMPORT / ENTDECKEN
-// ==========================================
-function initImportForms() {
-  const formChefkoch = document.getElementById("form-import-chefkoch");
-  if (!formChefkoch) return;
-  if (!requireAuth()) return;
+    fillRows("zutaten-container", recipe.zutaten, (row, zutat) => {
+      row.querySelector('input[name="zutaten_menge[]"]').value = zutat?.menge ?? "";
+      row.querySelector('input[name="zutaten_einheit[]"]').value = zutat?.einheit ?? "";
+      row.querySelector('input[name="zutaten_name[]"]').value = zutat?.name ?? zutat?.zutat ?? zutat ?? "";
+    });
 
-  formChefkoch.addEventListener("submit", async (e) => {
-    e.preventDefault();
+    fillRows("schritte-container", recipe.anleitung, (row, step) => {
+      row.querySelector('input[name="anleitung_dauer[]"]').value = step?.dauer ?? "";
+      row.querySelector('textarea[name="anleitung_schritt[]"]').value = step?.schritt ?? step?.text ?? step ?? "";
+    });
 
-    const url = document.getElementById("url")?.value.trim() || "";
-    const btn = e.submitter;
-    const msgBox = document.getElementById("import-message");
-
-    if (!url) {
-      showMessage("import-message", "Bitte einen Chefkoch-Link eingeben.", "error");
-      return;
+    const publicCheckbox = document.getElementById("is_public");
+    const publicNote = document.getElementById("import-public-note");
+    const external = isExternallyImported(recipe.source);
+    if (publicCheckbox) {
+      publicCheckbox.checked = Boolean(recipe.is_public) && !external;
+      publicCheckbox.disabled = external;
     }
+    if (publicNote) {
+      publicNote.hidden = !external;
+      publicNote.textContent = "Importierte Rezepte bleiben privat und können nicht öffentlich markiert werden.";
+    }
+  } catch (error) {
+    alert(extractErrorMessage(error));
+    window.location.href = "rezepte.html";
+    return;
+  }
 
-    setButtonLoading(btn, "Importiere...");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const submit = form.querySelector('button[type="submit"]');
+    setButtonLoading(submit, "Speichert...");
 
     try {
-      const response = await apiFetch("/api/import_chefkoch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+      const recipe = await apiFetch(`/api/rezepte/${id}`, {
+        method: "PUT",
+        body: collectRecipeFormData(form)
       });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(extractErrorMessage(result, "Import fehlgeschlagen"));
-      }
-
-      window.location.href = `./bearbeiten.html?id=${encodeURIComponent(result.id)}`;
+      window.location.href = `rezepte_detail.html?id=${recipe.id}`;
     } catch (error) {
-      if (msgBox) {
-        msgBox.textContent = `Fehler: ${error.message}`;
-        msgBox.hidden = false;
-        msgBox.style.display = "block";
-      }
-      resetButton(btn);
+      alert(extractErrorMessage(error));
+      resetButton(submit);
     }
   });
 }
 
-async function apiRezeptImportieren(apiId, btnElement) {
-  if (!requireAuth()) return;
+function fillRows(containerId, values, fillCallback) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const first = container.querySelector(".dynamic-row");
+  if (!first) return;
+  container.innerHTML = "";
+  const sourceValues = Array.isArray(values) && values.length ? values : [null];
+  sourceValues.forEach((value) => {
+    const row = first.cloneNode(true);
+    clearInputs(row);
+    fillCallback(row, value);
+    container.appendChild(row);
+  });
+}
 
-  setButtonLoading(btnElement, "Importiere...");
-
-  try {
-    const response = await apiFetch(`/api/import_apimeal/${encodeURIComponent(apiId)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
+function initImportForms() {
+  const chefkochForm = document.getElementById("form-import-chefkoch");
+  if (chefkochForm) {
+    if (!requireAuth()) return;
+    chefkochForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = chefkochForm.querySelector('button[type="submit"]');
+      const message = document.getElementById("import-message");
+      const url = document.getElementById("url")?.value || "";
+      setButtonLoading(button, "Importiert...");
+      try {
+        const recipe = await apiFetch("/api/import_chefkoch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, preview: true })
+        });
+        setImportDraft(recipe.draft || recipe, "chefkoch");
+        showMessage(message, "Rezept wurde geladen. Prüfe es vor dem Speichern.", "success");
+        window.location.href = "neues_rezept.html?import=chefkoch";
+      } catch (error) {
+        showMessage(message, extractErrorMessage(error), "error");
+        resetButton(button);
+      }
     });
+  }
 
-    const result = await response.json();
-
-    if (!response.ok || !result.success) {
-      throw new Error(extractErrorMessage(result, "Import fehlgeschlagen"));
-    }
-
-    window.location.href = `./bearbeiten.html?id=${encodeURIComponent(result.id)}`;
-  } catch (error) {
-    alert("Fehler beim Import: " + error.message);
-    resetButton(btnElement);
+  const textForm = document.getElementById("form-import-text");
+  if (textForm) {
+    if (!requireAuth()) return;
+    textForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = textForm.querySelector('button[type="submit"]');
+      const message = document.getElementById("text-import-message");
+      const text = document.getElementById("import-text")?.value || "";
+      const titel = document.getElementById("text-titel")?.value || "";
+      setButtonLoading(button, "Importiert...");
+      try {
+        const recipe = await apiFetch("/api/import_text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, titel, preview: true })
+        });
+        setImportDraft(recipe.draft || recipe, "text");
+        showMessage(message, "Textrezept wurde gelesen. Prüfe es vor dem Speichern.", "success");
+        window.location.href = "neues_rezept.html?import=text";
+      } catch (error) {
+        showMessage(message, extractErrorMessage(error), "error");
+        resetButton(button);
+      }
+    });
   }
 }
 
 async function loadEntdecken() {
-  const container = document.getElementById("entdecken-container");
-  if (!container) return;
+  const input = document.getElementById("suchbegriff") || document.getElementById("entdecken-suche-input");
+  const form = document.getElementById("form-entdecken") || input?.closest("form");
+  const results = document.getElementById("entdecken-results") || document.getElementById("entdecken-container");
+  if (!form || !results || !input) return;
 
-  const suche = getQueryParam("suche") || "pasta";
-  const input = document.getElementById("entdecken-suche-input");
-  if (input) input.value = suche;
+  const params = new URLSearchParams(window.location.search);
+  if (!input.getAttribute("placeholder")) input.setAttribute("placeholder", "z. B. pasta, curry, salad");
+  if (!input.value && params.has("suche")) input.value = params.get("suche") || "";
+  if (!input.value.trim()) input.value = "pasta";
 
-  try {
-    const response = await fetch(
-      `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(suche)}`
-    );
+  const runSearch = async () => {
+    const query = input.value.trim();
+    if (!query) return;
+    results.innerHTML = '<div class="empty-note">Suche läuft...</div>';
 
-    const data = await response.json();
-
-    container.innerHTML = "";
-
-    if (data.meals && data.meals.length > 0) {
-      data.meals.forEach((rezept) => {
-        container.innerHTML += `
-          <article class="recipe-card external-recipe-card">
-            <img src="${escapeHTML(rezept.strMealThumb)}" alt="${escapeHTML(rezept.strMeal)}" class="recipe-thumb">
-            <div class="recipe-card-header">
-              <h3>${escapeHTML(rezept.strMeal)}</h3>
-              <div class="recipe-card-badges">
-                <span class="pill">${escapeHTML(rezept.strCategory || "Kategorie")}</span>
-                <span class="pill muted">${escapeHTML(rezept.strArea || "International")}</span>
-              </div>
+    try {
+      const data = await apiFetch(`/api/entdecken?query=${encodeURIComponent(query)}`);
+      const meals = data?.meals || data || [];
+      results.innerHTML = meals.map((meal) => `
+        <article class="api-card">
+          ${meal.strMealThumb ? `<img src="${escapeHTML(meal.strMealThumb)}" alt="${escapeHTML(meal.strMeal || "Rezeptbild")}">` : ""}
+          <div class="api-content">
+            <h3>${escapeHTML(meal.strMeal || meal.titel || "Unbekanntes Rezept")}</h3>
+            <div class="recipe-badges">
+              ${meal.strCategory ? `<span class="badge">${escapeHTML(meal.strCategory)}</span>` : ""}
+              ${meal.strArea ? `<span class="badge badge-muted">${escapeHTML(meal.strArea)}</span>` : ""}
             </div>
-            <div class="recipe-card-actions">
-              <button type="button" onclick="apiRezeptImportieren('${escapeHTML(rezept.idMeal)}', this)">
-                In meine App importieren
-              </button>
-            </div>
-          </article>
-        `;
-      });
-    } else {
-      container.innerHTML = `
-        <article class="empty-card">
-          <h3>Keine Treffer gefunden</h3>
-          <p>Tipp: Die externe Datenbank nutzt englische Suchbegriffe.</p>
+            <p>${escapeHTML((meal.strInstructions || "").slice(0, 120))}${meal.strInstructions?.length > 120 ? "..." : ""}</p>
+            <button type="button" class="card-action" onclick="apiRezeptImportieren('${escapeHTML(meal.idMeal || meal.id || "")}', this)">In meine App importieren</button>
+          </div>
         </article>
-      `;
+      `).join("") || '<div class="empty-note">Keine Treffer gefunden.</div>';
+    } catch (error) {
+      results.innerHTML = `<div class="empty-note">${escapeHTML(extractErrorMessage(error))}</div>`;
     }
+  };
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    runSearch();
+  });
+
+  if (input.value.trim()) runSearch();
+}
+
+async function apiRezeptImportieren(apiId, button) {
+  if (!requireAuth()) return;
+  if (!apiId) return;
+  setButtonLoading(button, "Importiert...");
+  try {
+    const recipe = await apiFetch(`/api/import_apimeal/${encodeURIComponent(apiId)}?preview=1`, { method: "POST" });
+    setImportDraft(recipe.draft || recipe, "mealdb");
+    window.location.href = "neues_rezept.html?import=mealdb";
   } catch (error) {
-    container.innerHTML = `<p>Fehler beim Abrufen der Rezeptdaten.</p>`;
-    console.error(error);
+    alert(extractErrorMessage(error));
+    resetButton(button);
   }
 }
 
-// ==========================================
-// INITIALISIERUNG
-// ==========================================
-document.addEventListener("DOMContentLoaded", () => {
+function initAuthForms() {
+  const loginForm = document.getElementById("form-login");
+  const registerForm = document.getElementById("form-register");
+  const loginTab = document.getElementById("tab-login");
+  const registerTab = document.getElementById("tab-register");
+  const message = document.getElementById("auth-message");
+
+  if (loginTab && registerTab && loginForm && registerForm) {
+    loginTab.addEventListener("click", () => {
+      loginForm.hidden = false;
+      registerForm.hidden = true;
+      loginTab.classList.add("primary-action");
+      registerTab.classList.remove("primary-action");
+    });
+    registerTab.addEventListener("click", () => {
+      loginForm.hidden = true;
+      registerForm.hidden = false;
+      registerTab.classList.add("primary-action");
+      loginTab.classList.remove("primary-action");
+    });
+  }
+
+  if (loginForm) {
+    loginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = event.submitter;
+      const username = document.getElementById("login-username")?.value.trim() || "";
+      const password = document.getElementById("login-password")?.value || "";
+      setButtonLoading(button, "Melde an...");
+      try {
+        const data = await apiFetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        setAuth(data.username || data.user, data.token);
+        window.location.href = safeRedirectTarget(getQueryParam("next"));
+      } catch (error) {
+        showMessage(message, extractErrorMessage(error), "error");
+        resetButton(button);
+      }
+    });
+  }
+
+  if (registerForm) {
+    registerForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = event.submitter;
+      const username = document.getElementById("register-username")?.value.trim() || "";
+      const password = document.getElementById("register-password")?.value || "";
+      const repeat = document.getElementById("register-password-repeat")?.value || "";
+      if (password !== repeat) {
+        showMessage(message, "Die Passwörter stimmen nicht überein.", "error");
+        return;
+      }
+      setButtonLoading(button, "Erstelle Konto...");
+      try {
+        const data = await apiFetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        setAuth(data.username || data.user, data.token);
+        window.location.href = safeRedirectTarget(getQueryParam("next"));
+      } catch (error) {
+        showMessage(message, extractErrorMessage(error), "error");
+        resetButton(button);
+      }
+    });
+  }
+}
+
+function beendeKochmodus() { closeKochmodus(); }
+function naechsterSchritt() { nextStep(); }
+function vorherigerSchritt() { prevStep(); }
+
+window.addEventListener("DOMContentLoaded", () => {
+  replaceBrandMarks();
   renderCurrentUserBadge();
-
+  bindRecipeFilters();
   initAuthForms();
-
+  initCreateForm();
+  initImportForms();
+  initManualShoppingForm();
   loadHomeDashboard();
   loadRezepte();
   loadPublicRezepte();
@@ -1416,8 +1396,4 @@ document.addEventListener("DOMContentLoaded", () => {
   loadBearbeitenForm();
   loadEinkaufsliste();
   loadEntdecken();
-
-  initCreateForm();
-  initImportForms();
-  initManualShoppingForm();
 });

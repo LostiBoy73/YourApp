@@ -1,50 +1,102 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neues Rezept · KochFlow</title>
   <link rel="manifest" href="./manifest.json">
-  <link rel="apple-touch-icon" href="./static/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="./static/icon-192.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <link rel="stylesheet" href="./static/app.css">
-  <title>Neues Rezept · KochFlow</title>
 </head>
 <body>
   <main class="container">
-<header class="app-nav">
-  <a class="brand" href="./index.html" aria-label="Zur Startseite">
-    <span class="brand-mark">KF</span>
-    <span>KochFlow</span>
-  </a>
-  <div class="nav-links">
-    <a data-icon="⌂" class="" href="./index.html">Start</a>
-    <a data-icon="▤" class="" href="./rezepte.html">Rezepte</a>
-    <a data-icon="＋" class="active" href="./neues_rezept.html">Neu</a>
-    <a data-icon="○" class="" href="./community.html">Öffentlich</a>
-    <a data-icon="✓" class="" href="./einkaufsliste.html">Einkauf</a>
-    <a data-icon="↧" class="" href="./import.html">Import</a>
-    <a data-icon="⌕" class="" href="./entdecken.html">Entdecken</a>
-  </div>
-</header>
-<div id="current-user" class="user-bar"></div>
+    <nav class="app-nav" aria-label="Hauptnavigation">
+      <a class="brand" href="./index.html" aria-label="KochFlow Startseite">
+        <span class="brand-mark">KF</span>
+        <strong>KochFlow</strong>
+      </a>
+      <div class="nav-links">
+        <a href="./index.html" data-icon="⌂">Start</a>
+        <a href="./rezepte.html" data-icon="▤">Rezepte</a>
+        <a href="./neues_rezept.html" class="active" data-icon="+">Neu</a>
+        <a href="./community.html" data-icon="○">Öffentlich</a>
+        <a href="./einkaufsliste.html" data-icon="✓">Einkauf</a>
+        <a href="./import.html" data-icon="↧">Import</a>
+        <a href="./entdecken.html" data-icon="⌕">Entdecken</a>
+      </div>
+    </nav>
 
-<section class="page-header"><div><span class="pill">Neu</span><h1>Rezept erstellen</h1><p>Erfasse zuerst das Rezept. Beim Kochen wird es später Schritt für Schritt angezeigt.</p></div></section>
-<form id="form-neues-rezept" class="form-panel">
-<div class="form-section"><h2>Grunddaten</h2><label>Titel<input id="titel" name="titel" required placeholder="z.B. Pasta mit Gemüse"></label><label>Portionen<input id="portionen" name="portionen" type="number" value="2" min="1"></label></div>
-<div class="form-section"><h2>Kategorien</h2><div id="kategorie-container"><div class="dynamic-row category-row"><input type="text" name="kategorie[]" placeholder="z.B. vegetarisch"><button type="button" class="outline" onclick="removeZeile(this)">Entfernen</button></div></div><button type="button" class="secondary" onclick="addKategorieZeile()">Kategorie hinzufügen</button></div>
-<div class="form-section"><h2>Zutaten</h2><div id="zutaten-container"><div class="dynamic-row"><input type="text" name="zutaten_menge[]" placeholder="Menge"><input type="text" name="zutaten_einheit[]" placeholder="Einheit"><input type="text" name="zutaten_name[]" placeholder="Zutat" required><button type="button" class="outline" onclick="removeZeile(this)">Entfernen</button></div></div><button type="button" class="secondary" onclick="addZutatZeile()">Zutat hinzufügen</button></div>
-<div class="form-section"><h2>Kochschritte</h2><div id="schritte-container"><div class="dynamic-row step-row"><input type="number" name="anleitung_dauer[]" placeholder="Min."><textarea name="anleitung_schritt[]" placeholder="Was ist zu tun?" required></textarea><button type="button" class="outline" onclick="removeZeile(this)">Entfernen</button></div></div><button type="button" class="secondary" onclick="addSchrittZeile()">Schritt hinzufügen</button></div>
-<div class="form-section"><label><input type="checkbox" name="is_public"> Rezept direkt öffentlich teilen</label></div>
-<button type="submit">Rezept speichern</button></form>
+    <div class="user-bar">
+      <span id="current-user"></span>
+    </div>
 
+    <header class="page-header">
+      <div>
+        <p class="pill">Neu</p>
+        <h1>Neues Rezept</h1>
+        <p>Lege ein eigenes Rezept an oder prüfe einen importierten Entwurf vor dem Speichern. Nur eigene, manuell erstellte Rezepte können öffentlich geschaltet werden.</p>
+      </div>
+      <a href="./rezepte.html" role="button" class="secondary">Zurück</a>
+    </header>
+
+    <form id="form-neues-rezept" class="form-panel">
+      <div class="form-section">
+        <h2>Grunddaten</h2>
+        <label for="titel">Titel</label>
+        <input id="titel" name="titel" type="text" required placeholder="z. B. Käsespätzle">
+
+        <label for="portionen">Portionen</label>
+        <input id="portionen" name="portionen" type="number" min="1" step="1" value="2" required>
+      </div>
+
+      <div class="form-section">
+        <h2>Kategorien</h2>
+        <div id="kategorie-container">
+          <div class="dynamic-row category-row">
+            <input name="kategorie[]" type="text" placeholder="z. B. Vegetarisch">
+            <button type="button" class="secondary" onclick="removeZeile(this)" aria-label="Kategorie entfernen">−</button>
+          </div>
+        </div>
+        <button type="button" class="secondary" onclick="addKategorieZeile()">Kategorie hinzufügen</button>
+      </div>
+
+      <div class="form-section">
+        <h2>Zutaten</h2>
+        <div id="zutaten-container">
+          <div class="dynamic-row zutat-row">
+            <input name="zutaten_menge[]" type="text" placeholder="Menge">
+            <input name="zutaten_einheit[]" type="text" placeholder="Einheit">
+            <input name="zutaten_name[]" type="text" placeholder="Zutat">
+            <button type="button" class="secondary" onclick="removeZeile(this)" aria-label="Zutat entfernen">−</button>
+          </div>
+        </div>
+        <button type="button" class="secondary" onclick="addZutatZeile()">Zutat hinzufügen</button>
+      </div>
+
+      <div class="form-section">
+        <h2>Schritte</h2>
+        <div id="schritte-container">
+          <div class="dynamic-row step-row">
+            <input name="anleitung_dauer[]" type="number" min="0" step="1" placeholder="Min.">
+            <textarea name="anleitung_schritt[]" rows="2" placeholder="Schritt 1: Zwiebeln fein würfeln..."></textarea>
+            <button type="button" class="secondary" onclick="removeZeile(this)" aria-label="Schritt entfernen">−</button>
+          </div>
+        </div>
+        <button type="button" class="secondary" onclick="addSchrittZeile()">Schritt hinzufügen</button>
+      </div>
+
+      <div class="form-section visibility-section">
+        <label for="is_public">
+          <input id="is_public" name="is_public" type="checkbox" role="switch">
+          Rezept öffentlich anzeigen
+        </label>
+      </div>
+
+      <button type="submit" class="primary-action">Rezept speichern</button>
+    </form>
   </main>
+
   <script src="./static/script.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
-    }
-  </script>
 </body>
 </html>

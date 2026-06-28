@@ -339,3 +339,1188 @@ button.secondary, [role="button"].secondary, a.secondary { background: var(--app
     text-align: center;
   }
 }
+/* =========================================================
+   KochFlow Frontend-Fixes 2026-06-28
+   ========================================================= */
+.brand-mark-image {
+  overflow: hidden;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 999px;
+}
+
+.auth-status {
+  display: inline-flex !important;
+  align-items: center;
+  gap: .85rem !important;
+  white-space: nowrap;
+}
+
+.tiny-btn,
+#current-user a.tiny-btn,
+#current-user button.tiny-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: .35rem .8rem !important;
+  border-radius: 999px !important;
+  line-height: 1 !important;
+  border: 1px solid transparent !important;
+  background: var(--app-blue) !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+}
+
+button,
+[role="button"],
+input[type="submit"],
+.card-action,
+.small-action,
+.danger-action,
+.secondary,
+.outline {
+  min-height: 2.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  padding: .58rem 1rem !important;
+  line-height: 1.1 !important;
+  white-space: nowrap;
+}
+
+.recipe-actions .card-action,
+.api-content .card-action {
+  margin-top: auto;
+}
+
+.recipe-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  color: var(--app-muted);
+  font-size: .92rem;
+}
+
+.recipe-meta-item svg {
+  width: 1rem;
+  height: 1rem;
+  fill: currentColor;
+  opacity: .92;
+  flex: 0 0 auto;
+}
+
+.recipe-meta-item strong {
+  color: var(--app-text);
+  font-weight: 800;
+}
+
+.recipe-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem;
+  margin-bottom: .45rem;
+}
+
+.api-grid,
+#entdecken-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 320px));
+  gap: 1rem;
+  justify-content: start;
+  align-items: stretch;
+}
+
+.api-card {
+  width: 100%;
+  min-height: 31rem;
+  max-height: 31rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.api-card img {
+  height: 15rem;
+  aspect-ratio: auto;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
+.api-content {
+  min-height: 16rem;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+}
+
+.api-content h3 {
+  min-height: 3.1rem;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.api-content p {
+  color: var(--app-muted);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.shopping-section {
+  margin-bottom: 1rem;
+  padding: .95rem;
+  border: 1px solid var(--app-border);
+  border-radius: 1.2rem;
+  background: var(--app-surface-2);
+}
+
+.shopping-section h3 {
+  margin: 0 0 .7rem;
+  font-size: 1rem;
+}
+
+.shopping-list li,
+.shopping-recipe-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .65rem .75rem;
+  border: 1px solid var(--app-border);
+  border-radius: 1rem;
+  background: var(--app-surface);
+}
+
+
+.shopping-check-row {
+  align-items: center;
+}
+
+.shopping-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: .65rem;
+  min-width: 0;
+}
+
+.shopping-check {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  accent-color: var(--app-accent);
+}
+
+.shopping-check:checked + span {
+  text-decoration: line-through;
+  opacity: .65;
+}
+
+.shopping-item-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  flex: 0 0 auto;
+}
+
+.small-action {
+  min-height: 2rem;
+  padding: .35rem .65rem !important;
+  font-size: .78rem !important;
+  border: 1px solid transparent !important;
+  background: var(--app-accent-soft) !important;
+  color: var(--app-accent-strong) !important;
+}
+
+.danger-action {
+  border: 1px solid color-mix(in srgb, var(--app-danger) 35%, transparent) !important;
+  background: color-mix(in srgb, var(--app-danger) 13%, var(--app-surface)) !important;
+  color: var(--app-danger) !important;
+  font-weight: 900 !important;
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+  margin-top: 1.2rem;
+}
+
+.message {
+  margin: .85rem 0 0;
+  padding: .75rem .9rem;
+  border-radius: 1rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+  color: var(--app-muted);
+}
+
+.message.success {
+  background: var(--app-accent-soft);
+  color: var(--app-accent-strong);
+  border-color: color-mix(in srgb, var(--app-accent) 35%, var(--app-border));
+}
+
+.message.error {
+  background: color-mix(in srgb, var(--app-danger) 10%, var(--app-surface));
+  color: var(--app-danger);
+  border-color: color-mix(in srgb, var(--app-danger) 35%, var(--app-border));
+}
+
+.message.info {
+  background: var(--app-surface-3);
+  color: var(--app-muted);
+}
+
+.muted-text {
+  color: var(--app-muted);
+}
+
+.import-text-area {
+  min-height: 23rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  line-height: 1.45;
+}
+
+.visibility-section label {
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+  margin-bottom: 0;
+}
+
+@media (max-width: 720px) {
+  .auth-status {
+    white-space: normal;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .api-grid,
+  #entdecken-results {
+    grid-template-columns: 1fr;
+  }
+
+  .api-card {
+    max-height: none;
+    min-height: auto;
+  }
+
+  .shopping-list li,
+  .shopping-recipe-item,
+  .shopping-item-actions,
+  .edit-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+/* Fix: Filter-/Form-Aktionsbuttons exakt gleich hoch halten. */
+.filter-actions button,
+.filter-actions [role="button"],
+.filter-actions .secondary,
+.filter-actions .outline,
+form button[type="reset"],
+form .reset-button,
+form .secondary[type="reset"] {
+  min-height: 2.45rem !important;
+  height: 2.45rem !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 1 !important;
+  align-self: stretch !important;
+}
+
+/* =========================================================
+   UI-Fix 2026-06-28: konsistente Buttons + Zubereitung
+   ========================================================= */
+.filter-actions {
+  align-items: stretch !important;
+}
+
+.filter-actions > button,
+.filter-actions > [role="button"],
+.filter-actions > a,
+.filter-actions > input[type="submit"],
+.filter-actions > input[type="reset"] {
+  height: 2.75rem !important;
+  min-height: 2.75rem !important;
+  margin: 0 !important;
+  padding: 0 1.15rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+}
+
+.filter-actions > button[type="submit"],
+.filter-actions > input[type="submit"] {
+  width: 100% !important;
+}
+
+.filter-actions > button[type="reset"],
+.filter-actions > input[type="reset"],
+.filter-actions > .secondary,
+.filter-actions > a.secondary {
+  min-width: 7.2rem !important;
+}
+
+.recipe-actions .card-action,
+.recipe-actions button.card-action,
+.recipe-actions a.card-action {
+  height: 2.35rem !important;
+  min-height: 2.35rem !important;
+  margin: 0 !important;
+  padding: 0 .95rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  line-height: 1 !important;
+  font-size: .92rem !important;
+  border-radius: 999px !important;
+  appearance: none;
+}
+
+.recipe-actions button.card-action {
+  border: 1px solid transparent !important;
+}
+
+.recipe-actions .danger-action {
+  border-color: color-mix(in srgb, var(--app-danger) 35%, transparent) !important;
+}
+
+#standard-schritte-liste {
+  list-style: none !important;
+  padding-left: 0 !important;
+  margin: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+}
+
+.prep-step {
+  display: grid;
+  grid-template-columns: 2.2rem 5.7rem minmax(0, 1fr);
+  align-items: start;
+  gap: .75rem;
+  padding: .8rem .9rem;
+  border: 1px solid var(--app-border);
+  border-radius: 1rem;
+  background: var(--app-surface-2);
+}
+
+.prep-step-number {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--app-accent-soft);
+  color: var(--app-accent-strong);
+  font-weight: 950;
+  line-height: 1;
+}
+
+.prep-step-duration {
+  min-height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 .65rem;
+  border-radius: 999px;
+  background: var(--app-surface-3);
+  color: var(--app-muted);
+  font-weight: 850;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.prep-step-text {
+  padding-top: .27rem;
+  color: var(--app-text);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.koch-step-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .9rem;
+}
+
+.koch-step-kicker {
+  font-size: clamp(.95rem, 2vw, 1.15rem);
+  color: var(--app-muted);
+  font-weight: 850;
+}
+
+.koch-step-duration {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.35rem;
+  padding: 0 1rem;
+  border-radius: 999px;
+  background: var(--app-accent-soft);
+  color: var(--app-accent-strong);
+  font-size: clamp(1rem, 2.2vw, 1.35rem);
+  font-weight: 950;
+  line-height: 1;
+}
+
+.koch-step-text {
+  color: var(--app-text);
+}
+
+@media (max-width: 720px) {
+  .filter-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .filter-actions > button,
+  .filter-actions > [role="button"],
+  .filter-actions > a,
+  .filter-actions > input[type="submit"],
+  .filter-actions > input[type="reset"] {
+    width: 100% !important;
+  }
+
+  .prep-step {
+    grid-template-columns: 2.2rem minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .prep-step-duration {
+    justify-self: start;
+  }
+
+  .prep-step-text {
+    grid-column: 1 / -1;
+    padding-top: .15rem;
+  }
+}
+
+
+/* =========================================================
+   Einkaufsliste Design-Fix: näher an der Original-Zutatenliste
+   ========================================================= */
+#einkauf-zutaten {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#einkauf-zutaten .empty-note {
+  margin: 0;
+}
+
+.shopping-section {
+  margin: 0 0 1.35rem !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.shopping-section:last-child {
+  margin-bottom: 0 !important;
+}
+
+.shopping-section h3 {
+  margin: 0 0 .7rem !important;
+  color: var(--app-text) !important;
+  font-size: .95rem !important;
+  font-weight: 950 !important;
+  letter-spacing: .01em;
+}
+
+.shopping-list-clean {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.shopping-list-clean li.shopping-check-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: .9rem !important;
+  min-height: 2.65rem;
+  padding: .35rem 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.shopping-check-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: .85rem !important;
+  min-width: 0;
+  flex: 1 1 auto;
+  cursor: pointer;
+}
+
+.shopping-check {
+  width: 1.55rem !important;
+  height: 1.55rem !important;
+  flex: 0 0 1.55rem !important;
+  margin: 0 !important;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 2px solid var(--app-border);
+  border-radius: 999px;
+  background: var(--app-surface-2);
+  display: inline-grid;
+  place-content: center;
+  cursor: pointer;
+}
+
+.shopping-check::before {
+  content: "";
+  width: .68rem;
+  height: .68rem;
+  border-radius: 999px;
+  transform: scale(0);
+  transition: transform .12s ease;
+  background: var(--app-accent-strong);
+}
+
+.shopping-check:checked {
+  border-color: color-mix(in srgb, var(--app-accent) 70%, var(--app-border));
+  background: var(--app-accent-soft);
+}
+
+.shopping-check:checked::before {
+  transform: scale(1);
+}
+
+.shopping-check-text {
+  color: var(--app-text);
+  font-size: clamp(1rem, 2.2vw, 1.28rem);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.shopping-check:checked + .shopping-check-text {
+  text-decoration: line-through;
+  opacity: .62;
+}
+
+.shopping-item-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end;
+  gap: .5rem !important;
+  flex: 0 0 auto;
+}
+
+.shopping-item-actions .badge {
+  font-size: .72rem;
+}
+
+.shopping-item-actions .small-action {
+  height: 2rem !important;
+  min-height: 2rem !important;
+  padding: 0 .75rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.app-toast {
+  position: fixed;
+  right: 1.1rem;
+  bottom: 1.1rem;
+  z-index: 2000;
+  max-width: min(24rem, calc(100vw - 2rem));
+  padding: .8rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 45%, var(--app-border));
+  background: color-mix(in srgb, var(--app-surface) 88%, var(--app-accent-soft));
+  color: var(--app-text);
+  box-shadow: var(--app-shadow);
+  opacity: 0;
+  transform: translateY(.65rem);
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+  font-weight: 850;
+}
+
+.app-toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.app-toast.error {
+  border-color: color-mix(in srgb, var(--app-danger) 45%, var(--app-border));
+  background: color-mix(in srgb, var(--app-danger) 12%, var(--app-surface));
+  color: var(--app-danger);
+}
+
+@media (max-width: 720px) {
+  .shopping-list-clean li.shopping-check-row {
+    flex-direction: row !important;
+    align-items: center !important;
+  }
+
+  .shopping-item-actions {
+    align-items: center !important;
+    flex-direction: row !important;
+  }
+
+  .app-toast {
+    left: 1rem;
+    right: 1rem;
+    bottom: 5.4rem;
+    max-width: none;
+  }
+}
+
+
+/* =========================================================
+   Einkaufsliste Feinschliff: kompakte Abschnittslabels,
+   Icon-Löschen und keine redundanten Hinweise/Tags
+   ========================================================= */
+#einkauf-manuell:empty,
+#einkauf-manuell[hidden] {
+  display: none !important;
+}
+
+#einkauf-zutaten .shopping-section {
+  display: grid !important;
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+  align-items: start;
+  column-gap: .85rem;
+  margin: 0 0 1.05rem !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+#einkauf-zutaten .shopping-section:last-child {
+  margin-bottom: 0 !important;
+}
+
+#einkauf-zutaten .shopping-section h3 {
+  grid-column: 1;
+  align-self: stretch;
+  justify-self: center;
+  margin: .2rem 0 0 !important;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-align: center;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--app-text) !important;
+  font-size: .9rem !important;
+  font-weight: 950 !important;
+  letter-spacing: .02em;
+}
+
+#einkauf-zutaten .shopping-list-clean {
+  grid-column: 2;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .12rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+#einkauf-zutaten .shopping-list-clean li.shopping-check-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center !important;
+  column-gap: .75rem !important;
+  min-height: 2.55rem;
+  padding: .22rem 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+#einkauf-zutaten .shopping-check-label {
+  display: grid !important;
+  grid-template-columns: 1.55rem minmax(0, 1fr);
+  align-items: center !important;
+  gap: .9rem !important;
+  min-width: 0;
+  cursor: pointer;
+}
+
+#einkauf-zutaten .shopping-check {
+  width: 1.55rem !important;
+  height: 1.55rem !important;
+  flex: 0 0 1.55rem !important;
+  margin: 0 !important;
+}
+
+#einkauf-zutaten .shopping-check-text {
+  min-width: 0;
+  color: var(--app-text);
+  font-size: clamp(1rem, 2.2vw, 1.22rem);
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+}
+
+#einkauf-zutaten .shopping-item-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+#einkauf-zutaten .shopping-item-actions .badge {
+  display: none !important;
+}
+
+.icon-action {
+  width: 2.1rem;
+  height: 2.1rem;
+  min-width: 2.1rem;
+  min-height: 2.1rem;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: var(--app-accent-soft);
+  color: var(--app-accent);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.icon-action svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  display: block;
+  fill: currentColor;
+  pointer-events: none;
+}
+
+.icon-action:hover,
+.icon-action:focus-visible {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.icon-action-danger {
+  border-color: color-mix(in srgb, var(--app-danger) 42%, var(--app-border));
+  background: color-mix(in srgb, var(--app-danger) 10%, var(--app-surface));
+  color: var(--app-danger);
+}
+
+.shopping-recipe-item .icon-action {
+  flex: 0 0 auto;
+}
+
+.shopping-recipe-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: .75rem !important;
+}
+
+.shopping-recipe-item > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  #einkauf-zutaten .shopping-section {
+    grid-template-columns: 1.6rem minmax(0, 1fr);
+    column-gap: .7rem;
+  }
+
+  #einkauf-zutaten .shopping-section h3 {
+    font-size: .84rem !important;
+  }
+
+  #einkauf-zutaten .shopping-list-clean li.shopping-check-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  #einkauf-zutaten .shopping-check-label {
+    grid-template-columns: 1.45rem minmax(0, 1fr);
+    gap: .75rem !important;
+  }
+
+  #einkauf-zutaten .shopping-check {
+    width: 1.45rem !important;
+    height: 1.45rem !important;
+    flex-basis: 1.45rem !important;
+  }
+
+  .shopping-recipe-item {
+    flex-direction: row !important;
+    align-items: center !important;
+  }
+}
+
+/* =========================================================
+   Einkaufsliste + Import/Entdecken Feinschliff 2026-06-28
+   ========================================================= */
+.shopping-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+  margin-bottom: .85rem;
+}
+
+.shopping-panel-head h2 {
+  margin: 0 !important;
+}
+
+#btn-einkauf-leeren {
+  width: auto !important;
+  min-width: 2.25rem !important;
+  height: 2.25rem !important;
+  min-height: 2.25rem !important;
+  padding: 0 .7rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: .45rem !important;
+}
+
+#btn-einkauf-leeren[hidden] {
+  display: none !important;
+}
+
+.shopping-clear-text {
+  font-size: .78rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+#einkauf-zutaten .shopping-section {
+  display: block !important;
+  grid-template-columns: none !important;
+  margin: 0 0 1.35rem !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+#einkauf-zutaten .shopping-section h3 {
+  display: flex !important;
+  align-items: center !important;
+  gap: .7rem !important;
+  width: 100%;
+  margin: 0 0 .65rem !important;
+  writing-mode: horizontal-tb !important;
+  transform: none !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  color: var(--app-muted) !important;
+  font-size: .86rem !important;
+  font-weight: 950 !important;
+  letter-spacing: .02em;
+  line-height: 1 !important;
+}
+
+#einkauf-zutaten .shopping-section h3::before,
+#einkauf-zutaten .shopping-section h3::after {
+  content: "";
+  height: 1px;
+  flex: 1 1 auto;
+  background: color-mix(in srgb, var(--app-border) 85%, transparent);
+}
+
+#einkauf-zutaten .shopping-section h3 span {
+  flex: 0 0 auto;
+}
+
+#einkauf-zutaten .shopping-list-clean {
+  grid-column: auto !important;
+  min-width: 0;
+}
+
+#einkauf-zutaten .shopping-list-clean li.shopping-check-row {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  min-height: 2.55rem;
+}
+
+.icon-action,
+button.icon-action {
+  width: 2.15rem !important;
+  height: 2.15rem !important;
+  min-width: 2.15rem !important;
+  min-height: 2.15rem !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  flex: 0 0 2.15rem !important;
+}
+
+.icon-action svg,
+button.icon-action svg {
+  width: 1rem !important;
+  height: 1rem !important;
+  display: block !important;
+}
+
+.shopping-recipe-item {
+  min-height: 3.1rem;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 2.15rem !important;
+  align-items: center !important;
+  padding: .6rem .75rem !important;
+}
+
+.shopping-recipe-item > span {
+  display: block;
+  line-height: 1.25;
+  align-self: center;
+}
+
+#entdecken-results,
+.api-grid {
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  justify-content: stretch !important;
+  align-items: stretch !important;
+}
+
+#entdecken-results .api-card,
+.api-grid .api-card {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.api-content .card-action {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  #entdecken-results,
+  .api-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  #btn-einkauf-leeren {
+    width: auto !important;
+  }
+
+  .shopping-clear-text {
+    display: none;
+  }
+
+  #einkauf-zutaten .shopping-section {
+    display: block !important;
+    grid-template-columns: none !important;
+  }
+
+  #einkauf-zutaten .shopping-section h3 {
+    writing-mode: horizontal-tb !important;
+    transform: none !important;
+    font-size: .8rem !important;
+  }
+
+  #entdecken-results,
+  .api-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* =========================================================
+   Einkaufsliste Layout-Fix: Abschnittslinien + Liste leeren
+   ========================================================= */
+.shopping-panel-head {
+  align-items: center !important;
+  padding-right: .25rem !important;
+  margin-bottom: 1rem !important;
+}
+
+#btn-einkauf-leeren,
+#btn-einkauf-leeren.icon-action,
+button#btn-einkauf-leeren.icon-action {
+  width: auto !important;
+  min-width: 7.4rem !important;
+  height: 2.55rem !important;
+  min-height: 2.55rem !important;
+  padding: 0 .95rem !important;
+  margin: 0 .25rem 0 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: .45rem !important;
+  border-radius: 999px !important;
+  border: 1px solid color-mix(in srgb, var(--app-danger) 48%, var(--app-border)) !important;
+  background: color-mix(in srgb, var(--app-danger) 12%, var(--app-surface)) !important;
+  color: var(--app-danger) !important;
+  line-height: 1 !important;
+  flex: 0 0 auto !important;
+  transform: none !important;
+}
+
+#btn-einkauf-leeren svg {
+  width: 1rem !important;
+  height: 1rem !important;
+  flex: 0 0 1rem !important;
+}
+
+#btn-einkauf-leeren .shopping-clear-text {
+  display: inline-block !important;
+  font-size: .78rem !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+#einkauf-zutaten .shopping-section,
+ul#einkauf-zutaten > li.shopping-section {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  margin: 0 0 1.35rem !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+#einkauf-zutaten .shopping-section:last-child,
+ul#einkauf-zutaten > li.shopping-section:last-child {
+  margin-bottom: 0 !important;
+}
+
+#einkauf-zutaten .shopping-section h3,
+ul#einkauf-zutaten > li.shopping-section > h3 {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: .75rem !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: .2rem 0 .75rem !important;
+  padding: 0 !important;
+  writing-mode: horizontal-tb !important;
+  transform: none !important;
+  text-align: center !important;
+  color: var(--app-muted) !important;
+  font-size: .86rem !important;
+  font-weight: 950 !important;
+  letter-spacing: .02em !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+#einkauf-zutaten .shopping-section h3::before,
+#einkauf-zutaten .shopping-section h3::after,
+ul#einkauf-zutaten > li.shopping-section > h3::before,
+ul#einkauf-zutaten > li.shopping-section > h3::after {
+  content: "" !important;
+  display: block !important;
+  height: 1px !important;
+  min-width: 1.5rem !important;
+  flex: 1 1 0 !important;
+  background: color-mix(in srgb, var(--app-border) 88%, transparent) !important;
+  opacity: 1 !important;
+}
+
+#einkauf-zutaten .shopping-section h3 span,
+ul#einkauf-zutaten > li.shopping-section > h3 span {
+  display: inline-block !important;
+  flex: 0 0 auto !important;
+}
+
+@media (max-width: 720px) {
+  #btn-einkauf-leeren,
+  #btn-einkauf-leeren.icon-action,
+  button#btn-einkauf-leeren.icon-action {
+    min-width: 2.55rem !important;
+    width: 2.55rem !important;
+    padding: 0 !important;
+    margin-right: .15rem !important;
+  }
+
+  #btn-einkauf-leeren .shopping-clear-text {
+    display: none !important;
+  }
+}
+
+/* =========================================================
+   Einkaufsliste Abschnittslinien: robuster Fix
+   ========================================================= */
+#einkauf-zutaten .shopping-section h3,
+ul#einkauf-zutaten > li.shopping-section > h3 {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: .35rem 0 .85rem !important;
+  padding: 0 !important;
+  color: var(--app-muted) !important;
+  font-size: .86rem !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  background-image: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--app-border) 92%, var(--app-muted) 8%),
+    color-mix(in srgb, var(--app-border) 92%, var(--app-muted) 8%)
+  ) !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 1px !important;
+  background-position: center center !important;
+}
+
+#einkauf-zutaten .shopping-section h3::before,
+#einkauf-zutaten .shopping-section h3::after,
+ul#einkauf-zutaten > li.shopping-section > h3::before,
+ul#einkauf-zutaten > li.shopping-section > h3::after {
+  content: none !important;
+  display: none !important;
+}
+
+#einkauf-zutaten .shopping-section h3 span,
+ul#einkauf-zutaten > li.shopping-section > h3 span {
+  position: relative !important;
+  z-index: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 .85rem !important;
+  background: var(--app-surface) !important;
+  color: inherit !important;
+}

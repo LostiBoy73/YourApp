@@ -1,44 +1,69 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Import · KochFlow</title>
   <link rel="manifest" href="./manifest.json">
-  <link rel="apple-touch-icon" href="./static/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="./static/icon-192.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <link rel="stylesheet" href="./static/app.css">
-  <title>Rezept importieren · KochFlow</title>
 </head>
 <body>
   <main class="container">
-<header class="app-nav">
-  <a class="brand" href="./index.html" aria-label="Zur Startseite">
-    <span class="brand-mark">KF</span>
-    <span>KochFlow</span>
-  </a>
-  <div class="nav-links">
-    <a data-icon="⌂" class="" href="./index.html">Start</a>
-    <a data-icon="▤" class="" href="./rezepte.html">Rezepte</a>
-    <a data-icon="＋" class="" href="./neues_rezept.html">Neu</a>
-    <a data-icon="○" class="" href="./community.html">Öffentlich</a>
-    <a data-icon="✓" class="" href="./einkaufsliste.html">Einkauf</a>
-    <a data-icon="↧" class="active" href="./import.html">Import</a>
-    <a data-icon="⌕" class="" href="./entdecken.html">Entdecken</a>
-  </div>
-</header>
-<div id="current-user" class="user-bar"></div>
+    <nav class="app-nav" aria-label="Hauptnavigation">
+      <a class="brand" href="./index.html" aria-label="KochFlow Startseite">
+        <span class="brand-mark">KF</span>
+        <strong>KochFlow</strong>
+      </a>
+      <div class="nav-links">
+        <a href="./index.html" data-icon="⌂">Start</a>
+        <a href="./rezepte.html" data-icon="▤">Rezepte</a>
+        <a href="./neues_rezept.html" data-icon="+">Neu</a>
+        <a href="./community.html" data-icon="○">Öffentlich</a>
+        <a href="./einkaufsliste.html" data-icon="✓">Einkauf</a>
+        <a href="./import.html" class="active" data-icon="↧">Import</a>
+        <a href="./entdecken.html" data-icon="⌕">Entdecken</a>
+      </div>
+    </nav>
 
-<section class="page-header"><div><span class="pill">Import</span><h1>Rezept importieren</h1><p>Übernehme Rezepte in deinen privaten Bereich und passe sie danach an.</p></div></section>
-<section class="form-panel"><form id="form-import-chefkoch"><label>Chefkoch-Link<input id="url" name="url" type="url" placeholder="https://www.chefkoch.de/..." required></label><button type="submit">Rezept importieren</button></form><p id="import-message" class="empty-note" style="display:none;"></p></section>
+    <div class="user-bar">
+      <span id="current-user"></span>
+    </div>
 
+    <header class="page-header">
+      <div>
+        <p class="pill">Import</p>
+        <h1>Rezepte importieren</h1>
+        <p>Chefkoch-Links und Textrezepte werden zuerst als Entwurf geladen. Gespeichert wird erst, nachdem du die Daten geprüft und bestätigt hast.</p>
+      </div>
+    </header>
+
+    <section class="two-column">
+      <form id="form-import-chefkoch" class="form-panel">
+        <h2>Chefkoch-Rezept</h2>
+        <p class="muted-text">Füge die URL eines Chefkoch-Rezeptes ein. Der Import bleibt privat.</p>
+        <label for="url">Chefkoch-URL</label>
+        <input id="url" name="url" type="url" placeholder="https://www.chefkoch.de/rezepte/..." required>
+        <button type="submit" class="primary-action">Chefkoch-Rezept importieren</button>
+        <p id="import-message" class="message" hidden></p>
+      </form>
+
+      <form id="form-import-text" class="form-panel">
+        <h2>Eigenes Textrezept</h2>
+        <p class="muted-text">Geeignet für kopierte Rezepte mit Überschriften wie Zutaten und Zubereitung.</p>
+        <label for="text-titel">Titel, optional</label>
+        <input id="text-titel" name="titel" type="text" placeholder="Wird sonst aus der ersten Zeile gelesen">
+
+        <label for="import-text">Rezepttext</label>
+        <textarea id="import-text" name="text" class="import-text-area" rows="14" required placeholder="Omas Geile Soße&#10;Dauer: 15&#10;Portionen: 4&#10;Kategorien: Tomatensoße, Pasta&#10;&#10;Zutaten:&#10;- 500 g Tomaten&#10;- 1 Zwiebel&#10;&#10;Zubereitung:&#10;1. Zwiebel schneiden.&#10;2. Alles köcheln lassen."></textarea>
+
+        <button type="submit" class="primary-action">Textrezept importieren</button>
+        <p id="text-import-message" class="message" hidden></p>
+      </form>
+    </section>
   </main>
+
   <script src="./static/script.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
-    }
-  </script>
 </body>
 </html>
