@@ -87,7 +87,7 @@ a:hover { color: var(--app-accent); text-decoration: none !important; }
   backdrop-filter: blur(18px);
   box-shadow: var(--app-shadow-soft);
 }
-.brand { display: flex; align-items: center; gap: .7rem; font-weight: 900; white-space: nowrap; }
+.brand { display: flex; align-items: center; gap: .7rem; font-weight: 900; white-space: nowrap; flex: 0 0 auto; }
 .brand-mark, .card-icon {
   display: inline-flex; align-items: center; justify-content: center;
   border-radius: 999px;
@@ -96,8 +96,9 @@ a:hover { color: var(--app-accent); text-decoration: none !important; }
   font-weight: 900;
 }
 .brand-mark { width: 2.35rem; height: 2.35rem; font-size: .84rem; }
-.nav-links { display: flex; align-items: center; gap: .2rem; justify-content: flex-end; flex-wrap: wrap; }
-.nav-links a { display: inline-flex; align-items: center; gap: .4rem; padding: .55rem .72rem; border-radius: 999px; color: var(--app-muted); font-weight: 800; font-size: .9rem; line-height: 1; }
+.nav-links { display: flex; align-items: center; gap: .22rem; justify-content: flex-end; flex-wrap: nowrap; overflow-x: auto; min-width: 0; flex: 1 1 auto; scrollbar-width: none; }
+.nav-links::-webkit-scrollbar { display: none; }
+.nav-links a { display: inline-flex; align-items: center; justify-content: center; gap: .36rem; padding: .54rem .64rem; border-radius: 999px; color: var(--app-muted); font-weight: 800; font-size: clamp(.78rem, 1vw, .88rem); line-height: 1; white-space: nowrap; flex: 0 0 auto; min-height: 2.15rem; }
 .nav-links a::before { content: attr(data-icon); font-size: 1rem; }
 .nav-links a:hover, .nav-links a.active { background: var(--app-accent-soft); color: var(--app-accent-strong); }
 
@@ -1523,4 +1524,859 @@ ul#einkauf-zutaten > li.shopping-section > h3 span {
   padding: 0 .85rem !important;
   background: var(--app-surface) !important;
   color: inherit !important;
+}
+
+/* =========================================================
+   Update: Einkauf manuell mit Menge + Item, deutsche Entdecken-Suche
+   ========================================================= */
+.manual-shopping-form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--app-border);
+}
+.manual-shopping-form h2 {
+  margin-top: 0 !important;
+}
+.manual-shopping-grid {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, .55fr) minmax(0, 1fr);
+  gap: .55rem;
+  align-items: center;
+  margin-bottom: .7rem;
+}
+.manual-shopping-grid input {
+  width: 100%;
+  margin: 0 !important;
+}
+.manual-shopping-form button[type="submit"] {
+  width: 100%;
+  min-height: 2.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.shopping-check-text .shopping-amount,
+.shopping-amount {
+  font-weight: 950;
+  color: var(--app-text);
+}
+.discover-page .page-header,
+.discover-search-panel,
+.discover-grid {
+  max-width: 58rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+.discover-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .7rem;
+  align-items: center;
+}
+.discover-search-row input {
+  margin: 0 !important;
+}
+.discover-search-row button {
+  height: 2.8rem !important;
+  min-height: 2.8rem !important;
+  margin: 0 !important;
+  padding: 0 1.15rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.discover-grid,
+#entdecken-results.discover-grid,
+#entdecken-results.api-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: .9rem !important;
+  align-items: stretch !important;
+}
+.api-card-placeholder {
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  background: var(--app-surface-2);
+  color: var(--app-muted);
+  font-weight: 950;
+  letter-spacing: .02em;
+}
+.api-content p {
+  min-height: 3.6rem;
+}
+@media (max-width: 900px) {
+  .discover-grid,
+  #entdecken-results.discover-grid,
+  #entdecken-results.api-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 720px) {
+  .manual-shopping-grid,
+  .discover-search-row {
+    grid-template-columns: 1fr;
+  }
+  .discover-grid,
+  #entdecken-results.discover-grid,
+  #entdecken-results.api-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* =========================================================
+   Update 4: Einkaufsliste aggregiert, Entdecken-Bilder, Wochenplan
+   ========================================================= */
+.shopping-panel-head {
+  gap: 1rem !important;
+}
+
+.shopping-panel-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .65rem;
+  flex-wrap: wrap;
+}
+
+.shopping-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .2rem;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-surface-2) 68%, transparent);
+}
+
+.shopping-view-toggle .small-action {
+  min-height: 2.1rem !important;
+  height: 2.1rem !important;
+  padding: 0 .75rem !important;
+  margin: 0 !important;
+  border-radius: 999px !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--app-muted) !important;
+  font-size: .78rem !important;
+  font-weight: 900 !important;
+}
+
+.shopping-view-toggle .small-action.is-active {
+  background: var(--app-accent-soft) !important;
+  color: var(--app-accent) !important;
+  border-color: color-mix(in srgb, var(--app-accent) 28%, transparent) !important;
+}
+
+#einkauf-zutaten .shopping-section-combined h3 span {
+  color: var(--app-accent) !important;
+}
+
+#einkauf-zutaten .shopping-check-text {
+  line-height: 1.35 !important;
+}
+
+#einkauf-zutaten .shopping-check-row.is-combined .shopping-check-text::after {
+  content: "";
+}
+
+.discover-grid .api-card img,
+#entdecken-results .api-card img {
+  background: var(--app-surface-2);
+}
+
+.week-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+.week-toolbar-actions {
+  display: flex;
+  gap: .65rem;
+  flex-wrap: wrap;
+}
+
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(10rem, 1fr));
+  gap: .9rem;
+  align-items: stretch;
+}
+
+.week-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  padding: 1rem !important;
+  border: 1px solid var(--app-border);
+  border-radius: 1.2rem;
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-soft);
+}
+
+.week-card-head {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+}
+
+.week-day-short {
+  width: 2.1rem;
+  height: 2.1rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--app-accent-soft);
+  color: var(--app-accent);
+  font-weight: 950;
+}
+
+.week-card h3 {
+  margin: 0 !important;
+  font-size: 1.05rem;
+}
+
+.week-current {
+  min-height: 2.4rem;
+  margin: 0;
+  color: var(--app-text);
+  font-weight: 800;
+}
+
+.week-card label {
+  margin: 0 !important;
+  font-size: .82rem;
+  color: var(--app-muted);
+  font-weight: 850;
+}
+
+.week-card select,
+.week-card input {
+  margin-top: .3rem !important;
+  margin-bottom: 0 !important;
+  width: 100%;
+}
+
+.week-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .55rem;
+  margin-top: auto;
+}
+
+.week-actions button {
+  min-height: 2.45rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+}
+
+@media (max-width: 1180px) {
+  .week-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .shopping-panel-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .shopping-view-toggle {
+    width: 100%;
+  }
+
+  .shopping-view-toggle .small-action {
+    flex: 1 1 0;
+  }
+
+  .week-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .week-toolbar-actions {
+    width: 100%;
+  }
+
+  .week-toolbar-actions button,
+  .week-actions button {
+    width: 100%;
+  }
+
+  .week-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   Update 5: Rezeptbilder + kompaktere Rezeptkarten
+   ========================================================= */
+.recipe-card.recipe-card-with-image,
+#recipe-list-container .recipe-card.recipe-card-with-image,
+#public-recipe-list-container .recipe-card.recipe-card-with-image,
+#home-my-recipes .recipe-card.recipe-card-with-image,
+#home-public-recipes .recipe-card.recipe-card-with-image {
+  display: grid !important;
+  grid-template-columns: clamp(8.5rem, 22vw, 13rem) minmax(0, 1fr) !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  align-items: stretch !important;
+  min-height: 9.8rem;
+}
+
+.recipe-card-image {
+  min-height: 9.8rem;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 22% 22%, color-mix(in srgb, var(--app-accent) 24%, transparent), transparent 36%),
+    linear-gradient(135deg, color-mix(in srgb, var(--app-surface-2) 80%, transparent), color-mix(in srgb, var(--app-surface) 92%, transparent));
+  border-right: 1px solid var(--app-border);
+  color: var(--app-muted);
+  text-decoration: none !important;
+  overflow: hidden;
+}
+
+.recipe-card-image img {
+  width: 100%;
+  height: 100%;
+  min-height: 9.8rem;
+  object-fit: cover;
+  display: block;
+}
+
+.recipe-card-placeholder span {
+  font-weight: 950;
+  letter-spacing: -.02em;
+  color: color-mix(in srgb, var(--app-muted) 76%, var(--app-accent));
+}
+
+.recipe-card-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: .8rem;
+  padding: 1rem;
+}
+
+.recipe-card-content .recipe-main {
+  min-width: 0;
+}
+
+.recipe-card-content .recipe-actions {
+  justify-content: flex-start;
+  padding-top: .15rem;
+}
+
+.recipe-card-content .recipe-meta {
+  margin-top: .35rem;
+}
+
+.recipe-detail-image {
+  width: 100%;
+  max-height: 24rem;
+  overflow: hidden;
+  border-radius: 1.2rem;
+  border: 1px solid var(--app-border);
+  margin-bottom: 1rem;
+  background: var(--app-surface-2);
+}
+
+.recipe-detail-image img {
+  width: 100%;
+  height: 100%;
+  max-height: 24rem;
+  object-fit: cover;
+  display: block;
+}
+
+.image-form-section {
+  display: grid;
+  gap: .65rem;
+}
+
+.recipe-image-preview {
+  width: min(100%, 28rem);
+  aspect-ratio: 16 / 9;
+  border-radius: 1.15rem;
+  border: 1px dashed color-mix(in srgb, var(--app-border) 88%, var(--app-accent));
+  background: color-mix(in srgb, var(--app-surface-2) 80%, transparent);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--app-muted);
+  font-weight: 850;
+}
+
+.recipe-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.recipe-image-preview.is-empty {
+  background:
+    radial-gradient(circle at 24% 28%, color-mix(in srgb, var(--app-accent) 18%, transparent), transparent 38%),
+    color-mix(in srgb, var(--app-surface-2) 88%, transparent);
+}
+
+.image-remove-option {
+  display: inline-flex !important;
+  width: max-content;
+  align-items: center;
+  gap: .55rem;
+  margin-top: .25rem !important;
+  color: var(--app-muted);
+}
+
+.image-remove-option input {
+  margin: 0 !important;
+}
+
+@media (max-width: 760px) {
+  .recipe-card.recipe-card-with-image,
+  #recipe-list-container .recipe-card.recipe-card-with-image,
+  #public-recipe-list-container .recipe-card.recipe-card-with-image,
+  #home-my-recipes .recipe-card.recipe-card-with-image,
+  #home-public-recipes .recipe-card.recipe-card-with-image {
+    grid-template-columns: 1fr !important;
+  }
+
+  .recipe-card-image,
+  .recipe-card-image img {
+    min-height: 12rem;
+  }
+
+  .recipe-card-image {
+    border-right: 0;
+    border-bottom: 1px solid var(--app-border);
+  }
+
+  .recipe-card-content .recipe-actions {
+    align-items: stretch;
+  }
+
+  .recipe-card-content .recipe-actions .card-action {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
+
+
+/* Update 6: stabile Navigation und klickbare Rezeptkarten */
+.app-nav {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.nav-links {
+  min-height: 2.35rem;
+}
+
+.nav-links a,
+.nav-links a.active {
+  align-self: center;
+}
+
+.recipe-card-clickable {
+  cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+
+.recipe-card-clickable:hover,
+.recipe-card-clickable:focus-visible {
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.recipe-card-clickable:focus-visible {
+  border-color: color-mix(in srgb, var(--app-accent) 65%, var(--app-border));
+  box-shadow: 0 0 0 .18rem color-mix(in srgb, var(--app-accent) 24%, transparent), var(--app-shadow);
+}
+
+.recipe-card-clickable .recipe-title {
+  color: var(--app-text) !important;
+  font-weight: 950;
+  text-decoration: none !important;
+  font-size: clamp(1.25rem, 3vw, 1.7rem);
+  line-height: 1.03;
+  overflow-wrap: anywhere;
+}
+
+.recipe-card-open-hint {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: .15rem;
+  padding: .32rem .62rem;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 38%, var(--app-border));
+  border-radius: 999px;
+  color: var(--app-accent-strong);
+  background: color-mix(in srgb, var(--app-accent-soft) 82%, transparent);
+  font-weight: 900;
+  font-size: .82rem;
+}
+
+.recipe-card-open-hint::after {
+  content: "→";
+  margin-left: .35rem;
+}
+
+.recipe-detail-header {
+  align-items: flex-start;
+}
+
+.detail-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .55rem;
+  min-width: min(100%, 23rem);
+  margin-left: auto;
+}
+
+.detail-action-bar button,
+.detail-action-bar [role="button"] {
+  margin: 0 !important;
+  width: auto !important;
+  min-height: 2.45rem;
+  padding: .55rem .9rem !important;
+  line-height: 1 !important;
+}
+
+.recipe-detail-main {
+  overflow: hidden;
+}
+
+.recipe-detail-image {
+  margin: -1px -1px 1rem;
+  border-radius: 1.25rem 1.25rem .85rem .85rem;
+  overflow: hidden;
+  background: var(--app-surface-2);
+  border-bottom: 1px solid var(--app-border);
+}
+
+.recipe-detail-image img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+}
+
+@media (max-width: 980px) {
+  .app-nav {
+    gap: .55rem;
+  }
+
+  .nav-links {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .detail-action-bar {
+    justify-content: stretch;
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .detail-action-bar button,
+  .detail-action-bar [role="button"] {
+    flex: 1 1 10rem;
+  }
+}
+
+/* =========================================================
+   Update 7: Kochmodus wieder als Vollbild, Detail-Aktionen ausrichten,
+   Wochenplan lesbarer formatieren
+   ========================================================= */
+#kochmodus-overlay[hidden] {
+  display: none !important;
+}
+
+#kochmodus-overlay,
+#kochmodus-overlay.kochmodus-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999 !important;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  width: 100vw;
+  padding: clamp(1rem, 2.2vw, 2rem) !important;
+  background:
+    radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--app-accent) 7%, transparent), transparent 32rem),
+    var(--app-bg) !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+#kochmodus-overlay .koch-cancel {
+  align-self: flex-end;
+  width: auto !important;
+  margin: 0 !important;
+  padding: .7rem 1.25rem !important;
+  min-height: 2.8rem !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  border: 1px solid var(--app-border) !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--app-surface) 62%, transparent) !important;
+  color: var(--app-muted) !important;
+  box-shadow: none !important;
+  font-weight: 750 !important;
+  line-height: 1 !important;
+}
+
+#kochmodus-overlay .koch-cancel:hover {
+  color: var(--app-text) !important;
+  border-color: color-mix(in srgb, var(--app-accent) 36%, var(--app-border)) !important;
+}
+
+#kochmodus-overlay .koch-inhalt {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid !important;
+  place-items: center;
+  text-align: center;
+  padding: clamp(2rem, 5vh, 4.5rem) clamp(.5rem, 3vw, 2rem) !important;
+  overflow-y: auto;
+}
+
+#kochmodus-overlay #koch-schritt-text,
+#kochmodus-overlay .riesen-text,
+#kochmodus-overlay .koch-step-display {
+  width: min(100%, 1100px);
+  max-width: 1100px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+#kochmodus-overlay .koch-step-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(.75rem, 2.2vh, 1.25rem);
+}
+
+#kochmodus-overlay .koch-step-kicker {
+  color: var(--app-muted);
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  font-weight: 900;
+  letter-spacing: -.02em;
+}
+
+#kochmodus-overlay .koch-step-duration {
+  min-height: 2.7rem;
+  padding: 0 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--app-accent-soft);
+  color: var(--app-accent-strong);
+  font-size: clamp(1.15rem, 2vw, 1.55rem);
+  font-weight: 950;
+  line-height: 1;
+}
+
+#kochmodus-overlay .koch-step-text {
+  color: var(--app-text);
+  font-size: clamp(2.4rem, 5.4vw, 5.8rem);
+  font-weight: 950;
+  line-height: 1.22;
+  letter-spacing: -.055em;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+#kochmodus-overlay .koch-controls {
+  flex: 0 0 auto;
+  display: grid !important;
+  grid-template-columns: minmax(9rem, auto) minmax(5rem, 1fr) minmax(9rem, auto);
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0 0 clamp(.7rem, 1.5vh, 1rem) !important;
+  margin: 0 !important;
+}
+
+#kochmodus-overlay .riesen-button {
+  min-height: clamp(3.4rem, 8vh, 4.8rem) !important;
+  padding: 0 clamp(1.2rem, 3vw, 2.4rem) !important;
+  border-radius: 1.05rem !important;
+  font-size: clamp(1.1rem, 2.1vw, 1.6rem) !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+}
+
+#kochmodus-overlay #btn-prev-step {
+  justify-self: start;
+}
+
+#kochmodus-overlay #btn-next-step {
+  justify-self: end;
+  min-width: min(18vw, 14rem);
+}
+
+#kochmodus-overlay #koch-fortschritt {
+  justify-self: center;
+  color: var(--app-muted);
+  font-size: clamp(1.05rem, 1.7vw, 1.35rem);
+  font-weight: 900;
+  letter-spacing: .04em;
+}
+
+.recipe-detail-header {
+  align-items: flex-start !important;
+}
+
+.recipe-detail-header > div:first-child {
+  min-width: 0;
+}
+
+.recipe-detail-header .detail-action-bar {
+  align-self: flex-start;
+  margin-top: 3.05rem;
+}
+
+.week-toolbar {
+  align-items: flex-end;
+  max-width: 100%;
+}
+
+.week-toolbar h2 {
+  margin-bottom: .25rem;
+}
+
+.week-toolbar p {
+  margin: 0;
+  color: var(--app-muted);
+}
+
+.week-toolbar-actions {
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.week-grid {
+  grid-template-columns: repeat(auto-fit, minmax(15.5rem, 1fr)) !important;
+  gap: 1rem !important;
+  align-items: stretch;
+  width: 100%;
+}
+
+.week-card {
+  min-height: 24rem;
+  padding: 1.1rem !important;
+  gap: .85rem;
+  overflow: hidden;
+}
+
+.week-card-head {
+  min-height: 2.4rem;
+}
+
+.week-current {
+  min-height: 3.2rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.22;
+}
+
+.week-card label {
+  display: block;
+}
+
+.week-card select,
+.week-card input {
+  min-height: 3.15rem !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.week-actions {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  margin-top: auto;
+}
+
+.week-actions .primary-action {
+  flex: 1 1 auto;
+}
+
+.week-actions .danger-action {
+  flex: 0 0 auto;
+  min-width: 7.2rem;
+}
+
+@media (max-width: 900px) {
+  .recipe-detail-header .detail-action-bar {
+    margin-top: .5rem;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
+  .week-toolbar {
+    align-items: flex-start;
+  }
+
+  .week-toolbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  #kochmodus-overlay {
+    padding: .9rem !important;
+  }
+
+  #kochmodus-overlay .koch-controls {
+    grid-template-columns: 1fr;
+    gap: .7rem;
+  }
+
+  #kochmodus-overlay #btn-prev-step,
+  #kochmodus-overlay #btn-next-step,
+  #kochmodus-overlay #koch-fortschritt {
+    justify-self: stretch;
+  }
+
+  #kochmodus-overlay #koch-fortschritt {
+    order: -1;
+    text-align: center;
+  }
+
+  #kochmodus-overlay .koch-step-text {
+    font-size: clamp(2rem, 12vw, 4rem);
+  }
+
+  .week-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .week-actions .danger-action {
+    min-width: 0;
+  }
 }

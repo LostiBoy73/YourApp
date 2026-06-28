@@ -1,90 +1,74 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rezept · KochFlow</title>
   <link rel="manifest" href="./manifest.json">
-  <link rel="icon" type="image/x-icon" href="./static/favicon.ico">
-  <link rel="apple-touch-icon" href="./static/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="./static/icon-192.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <link rel="stylesheet" href="./static/app.css">
-  <title>Rezept · KochFlow</title>
 </head>
 <body>
   <main class="container">
-<header class="app-nav">
-  <a class="brand" href="./index.html" aria-label="Zur Startseite">
-    <span class="brand-mark">KF</span>
-    <span>KochFlow</span>
-  </a>
-  <div class="nav-links">
-    <a data-icon="⌂" class="" href="./index.html">Start</a>
-    <a data-icon="▤" class="active" href="./rezepte.html">Rezepte</a>
-    <a data-icon="＋" class="" href="./neues_rezept.html">Neu</a>
-    <a data-icon="○" class="" href="./community.html">Öffentlich</a>
-    <a data-icon="✓" class="" href="./einkaufsliste.html">Einkauf</a>
-    <a data-icon="↧" class="" href="./import.html">Import</a>
-    <a data-icon="⌕" class="" href="./entdecken.html">Entdecken</a>
-  </div>
-</header>
-<div id="current-user" class="user-bar"></div>
+    <nav class="app-nav" aria-label="Hauptnavigation">
+      <a class="brand" href="./index.html" aria-label="KochFlow Startseite">
+        <span class="brand-mark">KF</span>
+        <strong>KochFlow</strong>
+      </a>
+      <div class="nav-links">
+        <a href="./index.html" data-icon="⌂">Start</a>
+        <a href="./rezepte.html" class="active" data-icon="▤">Rezepte</a>
+        <a href="./neues_rezept.html" data-icon="+">Neu</a>
+        <a href="./community.html" data-icon="○">Öffentlich</a>
+        <a href="./einkaufsliste.html" data-icon="✓">Einkauf</a>
+        <a href="./wochenplan.html" data-icon="□">Plan</a>
+        <a href="./import.html" data-icon="↧">Import</a>
+        <a href="./entdecken.html" data-icon="⌕">Entdecken</a>
+      </div>
+    </nav>
 
-<section class="page-header">
-  <div>
-    <div id="detail-tags" style="margin-bottom: .5rem;"></div>
-    <h1 id="detail-titel">Lade Rezept...</h1>
-    <p id="detail-owner"></p>
-  </div>
-  <div class="recipe-actions" id="owner-controls" style="display:none;">
-    <button id="btn-visibility" type="button" class="secondary" onclick="toggleRezeptVisibility()">Sichtbarkeit ändern</button>
-    <button type="button" class="outline" style="color:var(--app-danger)!important; border-color:var(--app-danger)!important;" onclick="rezeptLoeschen()">Löschen</button>
-  </div>
-</section>
-
-<div id="standard-ansicht" class="detail-layout">
-  <aside class="detail-panel">
-    <h2>Zutaten</h2>
-    <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem;">
-      <label style="margin: 0;">Für <input id="portionen-rechner" type="number" style="width: 4rem; display: inline-block; margin: 0 .2rem; padding: .2rem .5rem; min-height: auto;" onchange="portionenUmrechnen()" min="1"></label> Portionen
+    <div class="user-bar">
+      <span id="current-user"></span>
     </div>
-    <ul id="detail-zutaten" class="ingredients-list"></ul>
-    
-    <div style="margin-top: 2rem;">
-      <button id="btn-einkaufsliste" type="button" class="secondary" style="width: 100%; margin-bottom: 0.5rem;" onclick="addRezeptToEinkaufsliste()">Zur Einkaufsliste hinzufügen</button>
-      <button onclick="startKochmodus()" class="primary-action" style="width: 100%; font-size: 1.1rem; padding: 0.8rem;">🍳 Rezept kochen</button>
-    </div>
-  </aside>
 
-  <section class="detail-panel">
-    <h2>Zubereitung</h2>
-    <div id="standard-schritte-liste"></div>
-  </section>
-</div>
+    <header class="page-header recipe-detail-header">
+      <div>
+        <p class="pill">Rezept</p>
+        <h1 id="detail-titel">Lade Rezept...</h1>
+        <div id="detail-kategorie" class="recipe-badges"></div>
+        <div id="detail-meta" class="recipe-meta"></div>
+      </div>
+      <div id="detail-action-bar" class="detail-action-bar" aria-label="Rezeptaktionen"></div>
+    </header>
 
-<div id="kochmodus-overlay" style="display: none;">
-  <button onclick="beendeKochmodus()" class="close-btn">✕ Abbrechen</button>
-  
-  <div class="koch-inhalt">
-    <div id="koch-zutaten-hinweis" style="margin-bottom: 1.5rem;"></div>
-    
-    <div id="koch-schritt-text" class="riesen-text"></div>
-  </div>
+    <section id="standard-ansicht" class="detail-layout">
+      <article class="detail-panel recipe-detail-main">
+        <h2>Zutaten</h2>
+        <label for="portionen-input">Portionen</label>
+        <input id="portionen-input" type="number" min="1" step="1" value="1" oninput="portionenUmrechnen()">
+        <ul id="detail-zutaten" class="ingredients-list"></ul>
+      </article>
 
-  <div class="koch-controls">
-    <button id="btn-koch-zurueck" onclick="vorherigerSchritt()" class="riesen-button secondary">Zurück</button>
-    <div id="koch-fortschritt" class="fortschritt">Schritt 1 / 5</div>
-    <button id="btn-koch-weiter" onclick="naechsterSchritt()" class="riesen-button">Weiter</button>
-  </div>
-</div>
+      <article class="detail-panel">
+        <h2>Zubereitung</h2>
+        <ol id="standard-schritte-liste" class="prep-steps"></ol>
+      </article>
+    </section>
 
+    <section id="kochmodus-overlay" class="kochmodus-overlay" hidden>
+      <button type="button" class="koch-cancel" onclick="beendeKochmodus()" aria-label="Kochmodus abbrechen">× Abbrechen</button>
+      <div class="koch-inhalt">
+        <div id="koch-schritt-text" class="riesen-text"></div>
+      </div>
+      <div class="koch-controls">
+        <button type="button" id="btn-prev-step" class="riesen-button secondary" onclick="vorherigerSchritt()">Zurück</button>
+        <span id="koch-fortschritt" class="fortschritt">1 / 1</span>
+        <button type="button" id="btn-next-step" class="riesen-button primary-action" onclick="naechsterSchritt()">Weiter</button>
+      </div>
+    </section>
   </main>
+
   <script src="./static/script.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
-    }
-  </script>
 </body>
 </html>

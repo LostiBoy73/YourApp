@@ -22,6 +22,7 @@
         <a href="./neues_rezept.html" class="active" data-icon="+">Neu</a>
         <a href="./community.html" data-icon="○">Öffentlich</a>
         <a href="./einkaufsliste.html" data-icon="✓">Einkauf</a>
+        <a href="./wochenplan.html" data-icon="□">Plan</a>
         <a href="./import.html" data-icon="↧">Import</a>
         <a href="./entdecken.html" data-icon="⌕">Entdecken</a>
       </div>
@@ -40,7 +41,7 @@
       <a href="./rezepte.html" role="button" class="secondary">Zurück</a>
     </header>
 
-    <form id="form-neues-rezept" class="form-panel">
+    <form id="form-neues-rezept" class="form-panel" enctype="multipart/form-data">
       <div class="form-section">
         <h2>Grunddaten</h2>
         <label for="titel">Titel</label>
@@ -48,6 +49,19 @@
 
         <label for="portionen">Portionen</label>
         <input id="portionen" name="portionen" type="number" min="1" step="1" value="2" required>
+      </div>
+
+      <div class="form-section image-form-section">
+        <h2>Rezeptbild</h2>
+        <div id="recipe-image-preview" class="recipe-image-preview is-empty"><span>Kein Bild ausgewählt</span></div>
+        <input id="image_url" name="image_url" type="hidden" value="">
+        <label for="image_file">Bild hochladen</label>
+        <input id="image_file" name="image_file" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+        <small>JPG, PNG, WebP oder GIF bis 5 MB. Importierte Chefkoch-Bilder werden übernommen und können hier ersetzt werden.</small>
+        <label class="image-remove-option" for="image_remove">
+          <input id="image_remove" name="image_remove" type="checkbox" value="1">
+          Bild entfernen
+        </label>
       </div>
 
       <div class="form-section">

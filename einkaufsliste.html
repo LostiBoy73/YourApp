@@ -1,48 +1,69 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Einkaufsliste · KochFlow</title>
   <link rel="manifest" href="./manifest.json">
-  <link rel="icon" type="image/x-icon" href="./static/favicon.ico">
-  <link rel="apple-touch-icon" href="./static/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="./static/icon-192.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <link rel="stylesheet" href="./static/app.css">
-  <title>Einkaufsliste · KochFlow</title>
 </head>
 <body>
   <main class="container">
-<header class="app-nav">
-  <a class="brand" href="./index.html" aria-label="Zur Startseite">
-    <span class="brand-mark">KF</span>
-    <span>KochFlow</span>
-  </a>
-  <div class="nav-links">
-    <a data-icon="⌂" class="" href="./index.html">Start</a>
-    <a data-icon="▤" class="" href="./rezepte.html">Rezepte</a>
-    <a data-icon="＋" class="" href="./neues_rezept.html">Neu</a>
-    <a data-icon="○" class="" href="./community.html">Öffentlich</a>
-    <a data-icon="✓" class="active" href="./einkaufsliste.html">Einkauf</a>
-    <a data-icon="↧" class="" href="./import.html">Import</a>
-    <a data-icon="⌕" class="" href="./entdecken.html">Entdecken</a>
-  </div>
-</header>
-<div id="current-user" class="user-bar"></div>
+    <nav class="app-nav" aria-label="Hauptnavigation">
+      <a class="brand" href="./index.html" aria-label="KochFlow Startseite">
+        <span class="brand-mark">KF</span>
+        <strong>KochFlow</strong>
+      </a>
+      <div class="nav-links">
+        <a href="./index.html" data-icon="⌂">Start</a>
+        <a href="./rezepte.html" data-icon="▤">Rezepte</a>
+        <a href="./neues_rezept.html" data-icon="+">Neu</a>
+        <a href="./community.html" data-icon="○">Öffentlich</a>
+        <a href="./einkaufsliste.html" class="active" data-icon="✓">Einkauf</a>
+        <a href="./wochenplan.html" data-icon="□">Plan</a>
+        <a href="./import.html" data-icon="↧">Import</a>
+        <a href="./entdecken.html" data-icon="⌕">Entdecken</a>
+      </div>
+    </nav>
 
-<section class="page-header"><div><span class="pill">Einkauf</span><h1>Einkaufsliste</h1><p>Zutaten aus deinen Rezepten werden zusammengefasst.</p></div></section>
-<section class="shopping-shell">
-  <aside class="form-panel"><h2>Rezepte</h2><ul id="einkauf-rezepte" class="shopping-list"></ul><h2 id="manuell-header" style="display:none;">Manuell</h2><ul id="einkauf-manuell" class="shopping-list"></ul><form id="form-einkauf-manuell"><input id="manuell-input" placeholder="Manuellen Eintrag hinzufügen"><button type="submit">Hinzufügen</button></form></aside>
-  <section class="form-panel"><h2>Zutaten</h2><ul id="einkauf-zutaten" class="shopping-list"></ul></section>
-</section>
+    <div class="user-bar">
+      <span id="current-user"></span>
+    </div>
 
+    <header class="page-header">
+      <div>
+        <p class="pill">Einkauf</p>
+        <h1>Einkaufsliste</h1>
+        <p>Zutaten aus deinen Rezepten werden zusammengefasst. Manuelle Einträge kannst du getrennt mit Menge und Zutat ergänzen.</p>
+      </div>
+    </header>
+
+    <section class="shopping-shell">
+      <section class="form-panel">
+        <h2>Rezepte</h2>
+        <ul id="einkauf-rezepte" class="shopping-list"></ul>
+
+        <form id="form-einkauf-manuell" class="manual-shopping-form">
+          <h2>Manuell</h2>
+          <div class="manual-shopping-grid">
+            <input id="manuell-menge-input" name="menge" type="text" autocomplete="off" placeholder="Menge, z. B. 500 g">
+            <input id="manuell-name-input" name="name" type="text" autocomplete="off" placeholder="Item, z. B. Tomaten" required>
+          </div>
+          <button type="submit" class="primary-action">Hinzufügen</button>
+        </form>
+
+        <ul id="einkauf-manuell" class="shopping-list" hidden></ul>
+      </section>
+
+      <section class="detail-panel">
+        <h2>Zutaten</h2>
+        <ul id="einkauf-zutaten" class="shopping-list"></ul>
+      </section>
+    </section>
   </main>
+
   <script src="./static/script.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
-    }
-  </script>
 </body>
 </html>

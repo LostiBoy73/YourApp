@@ -1,45 +1,61 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wochenplan · KochFlow</title>
   <link rel="manifest" href="./manifest.json">
-  <link rel="icon" type="image/x-icon" href="./static/favicon.ico">
-  <link rel="apple-touch-icon" href="./static/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="./static/icon-192.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <link rel="stylesheet" href="./static/app.css">
-  <title>Wochenplan · KochFlow</title>
 </head>
 <body>
   <main class="container">
-<header class="app-nav">
-  <a class="brand" href="./index.html" aria-label="Zur Startseite">
-    <span class="brand-mark">KF</span>
-    <span>KochFlow</span>
-  </a>
-  <div class="nav-links">
-    <a data-icon="⌂" class="active" href="./index.html">Start</a>
-    <a data-icon="▤" class="" href="./rezepte.html">Rezepte</a>
-    <a data-icon="＋" class="" href="./neues_rezept.html">Neu</a>
-    <a data-icon="○" class="" href="./community.html">Öffentlich</a>
-    <a data-icon="✓" class="" href="./einkaufsliste.html">Einkauf</a>
-    <a data-icon="↧" class="" href="./import.html">Import</a>
-    <a data-icon="⌕" class="" href="./entdecken.html">Entdecken</a>
-  </div>
-</header>
-<div id="current-user" class="user-bar"></div>
+    <nav class="app-nav" aria-label="Hauptnavigation">
+      <a class="brand" href="./index.html" aria-label="KochFlow Startseite">
+        <span class="brand-mark">KF</span>
+        <strong>KochFlow</strong>
+      </a>
+      <div class="nav-links">
+        <a href="./index.html" data-icon="⌂">Start</a>
+        <a href="./rezepte.html" data-icon="▤">Rezepte</a>
+        <a href="./neues_rezept.html" data-icon="+">Neu</a>
+        <a href="./community.html" data-icon="○">Öffentlich</a>
+        <a href="./einkaufsliste.html" data-icon="✓">Einkauf</a>
+        <a href="./import.html" data-icon="↧">Import</a>
+        <a href="./entdecken.html" data-icon="⌕">Entdecken</a>
+        <a href="./wochenplan.html" class="active" data-icon="□">Plan</a>
+      </div>
+    </nav>
 
-<section class="page-header"><div><span class="pill">Planung</span><h1>Wochenplan</h1><p>Diese Funktion ist als nächster Ausbau vorgesehen. Für die Demo bleibt der Fokus auf Rezepten, Kochmodus und Einkaufsliste.</p></div></section>
-<section class="menu-grid"><article class="menu-card"><span class="card-icon orange">Mo</span><h3>Montag</h3><p>Rezept auswählen</p></article><article class="menu-card"><span class="card-icon">Di</span><h3>Dienstag</h3><p>Rezept auswählen</p></article><article class="menu-card"><span class="card-icon blue">Mi</span><h3>Mittwoch</h3><p>Rezept auswählen</p></article></section>
+    <div class="user-bar">
+      <span id="current-user"></span>
+    </div>
 
+    <header class="page-header">
+      <div>
+        <p class="pill">Planung</p>
+        <h1>Wochenplan</h1>
+        <p>Plane pro Wochentag ein Gericht, ergänze kurze Notizen und übernimm die geplanten Rezepte gesammelt in die Einkaufsliste.</p>
+      </div>
+    </header>
+
+    <section class="week-toolbar">
+      <div>
+        <h2>Diese Woche</h2>
+        <p>Die Auswahl basiert auf deinen gespeicherten Rezepten.</p>
+      </div>
+      <div class="week-toolbar-actions">
+        <button type="button" id="btn-wochenplan-einkauf" class="primary-action">Plan zur Einkaufsliste</button>
+        <button type="button" id="btn-wochenplan-leeren" class="small-action danger-action">Plan leeren</button>
+      </div>
+    </section>
+
+    <section id="wochenplan-grid" class="week-grid" aria-live="polite">
+      <div class="empty-note">Lade Wochenplan...</div>
+    </section>
   </main>
+
   <script src="./static/script.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
-    }
-  </script>
 </body>
 </html>
