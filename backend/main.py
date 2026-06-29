@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "rezepte.db"
 UPLOAD_DIR = BASE_DIR / "uploads"
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
-MAX_IMAGE_BYTES = 5 * 1024 * 1024
+MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
 app = FastAPI(title="KochFlow API")
 
@@ -1582,7 +1582,11 @@ def image_from_chefkoch_snippet(snippet: str) -> str:
     return ""
 
 
+<<<<<<< Updated upstream
 CHEFKOCH_META_CACHE: Dict[str, Dict[str, str]] = {}
+=======
+CHEFKOCH_META_CACHE: Dict[str, Dict[str, Any]] = {}
+>>>>>>> Stashed changes
 
 
 def normalize_image_url(value: str) -> str:
@@ -1612,6 +1616,7 @@ def normalize_recipe_description(value: Any) -> str:
     text = re.sub(r"^Chefkoch\s*[-–:]\s*", "", text, flags=re.IGNORECASE).strip()
     text = re.sub(r"\s*\|\s*Chefkoch(?:\.de)?\s*$", "", text, flags=re.IGNORECASE).strip()
     text = re.sub(r"\s*-\s*Wir haben\s+\d+\s+.*$", "", text, flags=re.IGNORECASE).strip()
+<<<<<<< Updated upstream
     if len(text) < 20:
         return ""
     if len(text) > 260:
@@ -1619,6 +1624,408 @@ def normalize_recipe_description(value: Any) -> str:
     return text
 
 
+=======
+    text = re.sub(r"\bÜber\s+[0-9.]+\s+Bewertungen?[^.?!]*(?:[.?!]|$)", " ", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"\b[0-9]+(?:,[0-9]+)?\s*Sterne[^.?!]*(?:[.?!]|$)", " ", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"\s+", " ", text).strip(" -–—:;,.\t\n\r")
+    if len(text) < 20:
+        return ""
+    if len(text) > 320:
+        text = text[:317].rsplit(" ", 1)[0].rstrip(" .,;:-") + "..."
+    return text
+
+
+def json_text_values(value: Any) -> List[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        cleaned = clean_html_text(value)
+        return [cleaned] if cleaned else []
+    if isinstance(value, (int, float)):
+        return [str(value)]
+    if isinstance(value, list):
+        values: List[str] = []
+        for item in value:
+            values.extend(json_text_values(item))
+        return values
+    if isinstance(value, dict):
+        for key in ("name", "text", "description", "url"):
+            if key in value:
+                found = json_text_values(value.get(key))
+                if found:
+                    return found
+    return []
+
+
+def iter_json_ld_nodes(value: Any) -> List[Dict[str, Any]]:
+    nodes: List[Dict[str, Any]] = []
+    if isinstance(value, list):
+        for item in value:
+            nodes.extend(iter_json_ld_nodes(item))
+    elif isinstance(value, dict):
+        nodes.append(value)
+        for key in ("@graph", "mainEntity", "item", "hasPart"):
+            if key in value:
+                nodes.extend(iter_json_ld_nodes(value.get(key)))
+    return nodes
+
+
+def json_ld_types(value: Dict[str, Any]) -> set[str]:
+    raw = value.get("@type")
+    if isinstance(raw, list):
+        return {str(item).lower() for item in raw}
+    if raw:
+        return {str(raw).lower()}
+    return set()
+
+
+def is_recipe_json_ld(value: Dict[str, Any]) -> bool:
+    types = json_ld_types(value)
+    return any("recipe" in item for item in types) or any(key in value for key in ("recipeIngredient", "recipeInstructions"))
+
+
+def extract_instruction_texts(value: Any) -> List[str]:
+    texts: List[str] = []
+    if isinstance(value, str):
+        cleaned = clean_html_text(value)
+        if cleaned:
+            texts.append(cleaned)
+    elif isinstance(value, list):
+        for item in value:
+            texts.extend(extract_instruction_texts(item))
+    elif isinstance(value, dict):
+        for key in ("text", "name", "description"):
+            if value.get(key):
+                cleaned = clean_html_text(str(value.get(key)))
+                if cleaned:
+                    texts.append(cleaned)
+                    break
+        for key in ("itemListElement", "steps"):
+            if key in value:
+                texts.extend(extract_instruction_texts(value.get(key)))
+    seen: set[str] = set()
+    unique: List[str] = []
+    for text in texts:
+        compact = re.sub(r"\s+", " ", text).strip()
+        key = compact.lower()
+        if compact and key not in seen:
+            seen.add(key)
+            unique.append(compact)
+    return unique
+
+
+def description_from_instructions(value: Any) -> str:
+    steps = extract_instruction_texts(value)
+    if not steps:
+        return ""
+    joined = " ".join(steps[:2])
+    return normalize_recipe_description(joined)
+
+
+def strip_title_prefix(text: str, title: str) -> str:
+    cleaned = clean_html_text(text)
+    title_clean = clean_html_text(title)
+    if not cleaned or not title_clean:
+        return cleaned
+    escaped = re.escape(title_clean)
+    cleaned = re.sub(rf"^{escaped}\s*[-–—:]\s*", "", cleaned, flags=re.IGNORECASE).strip()
+    title_words = re.escape(title_clean.replace("-", " "))
+    cleaned = re.sub(rf"^{title_words}\s*[-–—:]\s*", "", cleaned, flags=re.IGNORECASE).strip()
+    return cleaned
+
+
+def clean_discovery_description_text(text: Any, title: str = "") -> str:
+    cleaned = normalize_recipe_description(text)
+    if not cleaned:
+        return ""
+    cleaned = strip_title_prefix(cleaned, title)
+    # Chefkoch-Suchergebnisse enthalten häufig reine Navigations-/SEO-Fragmente.
+    cleaned = re.sub(r"\s*[►>]+\s*(?:Portionsrechner|Kochbuch|Video[- ]?Tipps?|Kommentare?|Bewertungen?|Zutaten|Zubereitung).*$", "", cleaned, flags=re.IGNORECASE).strip()
+    cleaned = re.sub(r"\bMit\s*[►>]+.*$", "", cleaned, flags=re.IGNORECASE).strip()
+    cleaned = re.sub(r"\b(?:Portionsrechner|Kochbuch|Video[- ]?Tipps?|Kommentare?|Bewertungen?)\b.*$", "", cleaned, flags=re.IGNORECASE).strip()
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -–—:;,.")
+    if len(cleaned) < 18:
+        return ""
+    if len(cleaned) > 260:
+        cleaned = cleaned[:257].rsplit(" ", 1)[0].rstrip(" .,;:-") + "..."
+    return cleaned
+
+
+def recipe_ingredients_from_json_ld(value: Any) -> List[str]:
+    ingredients: List[str] = []
+    nodes = iter_json_ld_nodes(value)
+    recipe_nodes = [node for node in nodes if is_recipe_json_ld(node)] or nodes
+    for node in recipe_nodes:
+        if not isinstance(node, dict):
+            continue
+        raw = node.get("recipeIngredient") or node.get("ingredients")
+        for item in json_text_values(raw):
+            cleaned = ingredient_preview_name(item)
+            if cleaned and cleaned.lower() not in {x.lower() for x in ingredients}:
+                ingredients.append(cleaned)
+            if len(ingredients) >= 5:
+                return ingredients
+    return ingredients
+
+
+def ingredient_preview_name(value: Any) -> str:
+    text = clean_html_text(str(value or ""))
+    if not text:
+        return ""
+    text = re.sub(r"\([^)]*\)", " ", text)
+    text = re.sub(r"^\s*(?:\d+[\d\s.,/]*|[¼½¾⅓⅔⅛⅜⅝⅞]+)\s*", "", text)
+    text = re.sub(
+        r"^\s*(?:g|kg|mg|ml|l|liter|el|tl|esslöffel|teelöffel|prise[n]?|pck\.?|packung(?:en)?|dose[n]?|glas|gläser|bund|stück|stk\.?|zehe[n]?|becher|scheibe[n]?|blatt|blätter)\s+",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(r"\s+", " ", text).strip(" -–—,.;:")
+    text = re.sub(r"\b(?:nach Geschmack|optional|n\.?\s*B\.?)\b", "", text, flags=re.IGNORECASE).strip(" -–—,.;:")
+    if not text or len(text) < 3:
+        return ""
+    if len(text) > 34:
+        text = text[:31].rsplit(" ", 1)[0].rstrip(" .,;:-") + "..."
+    return text[:1].upper() + text[1:]
+
+
+def first_instruction_preview_from_json_ld(value: Any) -> str:
+    nodes = iter_json_ld_nodes(value)
+    recipe_nodes = [node for node in nodes if is_recipe_json_ld(node)] or nodes
+    for node in recipe_nodes:
+        if not isinstance(node, dict):
+            continue
+        for step in extract_instruction_texts(node.get("recipeInstructions")):
+            cleaned = clean_discovery_description_text(step)
+            if cleaned and len(cleaned) >= 35:
+                if len(cleaned) > 155:
+                    cleaned = cleaned[:152].rsplit(" ", 1)[0].rstrip(" .,;:-") + "..."
+                return cleaned
+    return ""
+
+
+def join_german_list(items: List[str]) -> str:
+    clean_items = [item for item in items if item]
+    if not clean_items:
+        return ""
+    if len(clean_items) == 1:
+        return clean_items[0]
+    if len(clean_items) == 2:
+        return f"{clean_items[0]} und {clean_items[1]}"
+    return f"{', '.join(clean_items[:-1])} und {clean_items[-1]}"
+
+
+def low_value_description(text: str, title: str = "") -> bool:
+    cleaned = clean_discovery_description_text(text, title)
+    if not cleaned:
+        return True
+    lowered = cleaned.lower()
+    if any(word in lowered for word in ("portionsrechner", "kochbuch", "video-tipps", "video tipps", "bewertung", "sterne")):
+        return True
+    # Sehr kurze Werbezeilen wie „wie beim Italiener“ tragen auf Karten wenig Nutzen.
+    return len(cleaned) < 45
+
+
+def build_discovery_description(title: str, raw_description: str = "", ingredients: Optional[List[str]] = None, instruction: str = "") -> str:
+    cleaned_description = clean_discovery_description_text(raw_description, title)
+    ingredients = ingredients or []
+    instruction = clean_discovery_description_text(instruction)
+
+    # Wenn die Beschreibung bereits aus diesem Builder kommt, darf sie beim
+    # erneuten Aufruf nicht noch einmal um dieselben Blöcke ergänzt werden.
+    has_ingredient_block = bool(re.search(r"\bHauptzutaten\s*:", cleaned_description, flags=re.IGNORECASE))
+    has_instruction_block = bool(re.search(r"\b(?:Erster Schritt|Zubereitung)\s*:", cleaned_description, flags=re.IGNORECASE))
+
+    parts: List[str] = []
+    if cleaned_description and not low_value_description(cleaned_description, title):
+        parts.append(cleaned_description)
+
+    # Die Karten sollen kurz erklären, worum es geht. Hauptzutaten werden nur
+    # einmal ergänzt und nicht erneut an bereits aufgebaute Texte angehängt.
+    ingredient_text = join_german_list(ingredients[:4])
+    if ingredient_text and not has_ingredient_block:
+        parts.append(f"Hauptzutaten: {ingredient_text}.")
+
+    if instruction and not has_instruction_block:
+        intro = "Zubereitung" if ingredient_text or cleaned_description else "Erster Schritt"
+        parts.append(f"{intro}: {instruction}")
+
+    if not parts and cleaned_description:
+        parts.append(cleaned_description)
+
+    result = " ".join(parts).strip()
+    # Doppelte technische Fragmente entfernen, falls eine Quelle schon denselben
+    # Abschnitt geliefert hat.
+    result = re.sub(
+        r"(Hauptzutaten:\s*[^.]+\.)\s+Hauptzutaten:\s*[^.]+\.",
+        r"\1",
+        result,
+        flags=re.IGNORECASE,
+    )
+    if not result:
+        result = f"{title}: Details, Zutaten und Schritte werden beim Import als bearbeitbarer Entwurf geladen."
+    if len(result) > 300:
+        result = result[:297].rsplit(" ", 1)[0].rstrip(" .,;:-") + "..."
+    return result
+
+
+def clean_recipe_tag(value: Any) -> str:
+    raw = clean_html_text(str(value or ""))
+    raw = re.sub(r"https?://\S+", "", raw).strip(" #,;:.|-–—")
+    if not raw:
+        return ""
+    replacements = {
+        "http://schema.org/vegandiet": "Vegan",
+        "https://schema.org/vegandiet": "Vegan",
+        "vegandiet": "Vegan",
+        "vegetariandiet": "Vegetarisch",
+        "http://schema.org/vegetariandiet": "Vegetarisch",
+        "https://schema.org/vegetariandiet": "Vegetarisch",
+        "glutenfreediet": "Glutenfrei",
+        "lowcaloriediet": "Kalorienarm",
+    }
+    key = raw.lower().replace(" ", "")
+    raw = replacements.get(key, raw)
+    raw = re.sub(r"^(rezept|gerichte?|rezepte)\s*[:/-]\s*", "", raw, flags=re.IGNORECASE).strip()
+    if raw.lower() in {"chefkoch", "deutsch", "deutschland", "recipe", "rezepte", "rezept"}:
+        return ""
+    if len(raw) > 22:
+        raw = raw[:22].rsplit(" ", 1)[0].strip() or raw[:22].strip()
+    return raw[:1].upper() + raw[1:]
+
+
+def split_keyword_tags(value: Any) -> List[str]:
+    tags: List[str] = []
+    for text in json_text_values(value):
+        for part in re.split(r"[,;|#/]+", text):
+            tag = clean_recipe_tag(part)
+            if tag:
+                tags.append(tag)
+    return tags
+
+
+def add_unique_tag(tags: List[str], value: Any) -> None:
+    tag = clean_recipe_tag(value)
+    if not tag:
+        return
+    existing = {item.lower() for item in tags}
+    if tag.lower() not in existing:
+        tags.append(tag)
+
+
+def infer_tags_from_text(title: str, description: str = "") -> List[str]:
+    haystack = f"{title} {description}".lower()
+    rules = [
+        (r"\b(vegan|pflanzlich)\b", "Vegan"),
+        (r"vegetar", "Vegetarisch"),
+        (r"lasagne|spaghetti|pasta|nudel|tagliatelle|rigatoni|maccheroni", "Pasta"),
+        (r"salat", "Salat"),
+        (r"suppe|eintopf|chili", "Eintopf"),
+        (r"kuchen|torte|muffin|brownie|waffel|plätzchen|keks", "Backen"),
+        (r"dessert|flan|creme|pudding|eis", "Dessert"),
+        (r"hähnchen|chicken|puten|pute|geflügel", "Geflügel"),
+        (r"hackfleisch|rind|steak|schwein|fleisch", "Fleisch"),
+        (r"fisch|lachs|garnelen|meeresfr", "Fisch"),
+        (r"kartoffel", "Kartoffel"),
+        (r"reis|risotto|paella", "Reis"),
+        (r"italien|bolognese|carbonara|pesto|pizza", "Italienisch"),
+        (r"asiatisch|korean|thai|curry|tofu|soja", "Asiatisch"),
+        (r"schnell|einfach", "Einfach"),
+    ]
+    tags: List[str] = []
+    for pattern, tag in rules:
+        if re.search(pattern, haystack, flags=re.IGNORECASE):
+            add_unique_tag(tags, tag)
+        if len(tags) >= 3:
+            break
+    return tags
+
+
+def tags_from_json_ld(value: Any) -> List[str]:
+    tags: List[str] = []
+    nodes = iter_json_ld_nodes(value)
+    recipe_nodes = [node for node in nodes if is_recipe_json_ld(node)] or nodes
+    for node in recipe_nodes:
+        for key in ("recipeCategory", "recipeCuisine", "suitableForDiet"):
+            for part in json_text_values(node.get(key)):
+                add_unique_tag(tags, part)
+        for part in split_keyword_tags(node.get("keywords")):
+            add_unique_tag(tags, part)
+        if len(tags) >= 3:
+            break
+    return tags[:3]
+
+
+def normalize_rating(value: Any) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip().replace(",", ".")
+    match = re.search(r"\d+(?:\.\d+)?", text)
+    if not match:
+        return ""
+    try:
+        number = float(match.group(0))
+    except ValueError:
+        return ""
+    if number <= 0:
+        return ""
+    return f"{min(number, 5.0):.1f}"
+
+
+def normalize_count(value: Any) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip().replace(".", "")
+    match = re.search(r"\d+", text)
+    return match.group(0) if match else ""
+
+
+def rating_from_json_ld(value: Any) -> Dict[str, str]:
+    nodes = iter_json_ld_nodes(value)
+    recipe_nodes = [node for node in nodes if is_recipe_json_ld(node)] or nodes
+    for node in recipe_nodes:
+        rating = node.get("aggregateRating") if isinstance(node, dict) else None
+        if isinstance(rating, list):
+            rating = rating[0] if rating else None
+        if isinstance(rating, dict):
+            value_text = normalize_rating(rating.get("ratingValue") or rating.get("value"))
+            count_text = normalize_count(rating.get("reviewCount") or rating.get("ratingCount") or rating.get("count"))
+            if value_text:
+                return {"rating_value": value_text, "rating_count": count_text}
+    return {"rating_value": "", "rating_count": ""}
+
+
+def rating_from_html(page: str) -> Dict[str, str]:
+    rating_value = ""
+    rating_count = ""
+    for pattern in (r'"ratingValue"\s*:\s*"?([0-9]+(?:[,.][0-9]+)?)', r'ratingValue["\']?\s*[:=]\s*["\']?([0-9]+(?:[,.][0-9]+)?)'):
+        match = re.search(pattern, page, flags=re.IGNORECASE)
+        if match:
+            rating_value = normalize_rating(match.group(1))
+            break
+    for pattern in (r'"(?:reviewCount|ratingCount)"\s*:\s*"?([0-9.]+)', r'Über\s+([0-9.]+)\s+Bewertungen'):
+        match = re.search(pattern, page, flags=re.IGNORECASE)
+        if match:
+            rating_count = normalize_count(match.group(1))
+            break
+    return {"rating_value": rating_value, "rating_count": rating_count}
+
+
+def best_json_ld_description(value: Any) -> str:
+    nodes = iter_json_ld_nodes(value)
+    recipe_nodes = [node for node in nodes if is_recipe_json_ld(node)] or nodes
+    fallback = ""
+    for node in recipe_nodes:
+        description = normalize_recipe_description(node.get("description"))
+        if description and not fallback:
+            fallback = description
+        instruction_description = description_from_instructions(node.get("recipeInstructions"))
+        if instruction_description:
+            return description if description and len(description) > 45 else instruction_description
+    return fallback
+
+
+>>>>>>> Stashed changes
 def image_from_json_ld(value: Any) -> str:
     if isinstance(value, list):
         for item in value:
@@ -1661,11 +2068,19 @@ def description_from_json_ld(value: Any) -> str:
     return ""
 
 
+<<<<<<< Updated upstream
 def chefkoch_recipe_meta(recipe_url: str) -> Dict[str, str]:
     if recipe_url in CHEFKOCH_META_CACHE:
         return CHEFKOCH_META_CACHE[recipe_url]
 
     meta = {"image": "", "description": ""}
+=======
+def chefkoch_recipe_meta(recipe_url: str) -> Dict[str, Any]:
+    if recipe_url in CHEFKOCH_META_CACHE:
+        return CHEFKOCH_META_CACHE[recipe_url]
+
+    meta: Dict[str, Any] = {"image": "", "description": "", "tags": [], "rating_value": "", "rating_count": "", "ingredients_preview": [], "instruction_preview": ""}
+>>>>>>> Stashed changes
     try:
         response = requests.get(
             recipe_url,
@@ -1694,7 +2109,11 @@ def chefkoch_recipe_meta(recipe_url: str) -> Dict[str, str]:
         ):
             match = re.search(pattern, page, flags=re.IGNORECASE)
             if match:
+<<<<<<< Updated upstream
                 meta["description"] = normalize_recipe_description(match.group(1))
+=======
+                meta["description"] = clean_discovery_description_text(match.group(1), title_from_chefkoch_url(recipe_url))
+>>>>>>> Stashed changes
                 if meta["description"]:
                     break
 
@@ -1705,11 +2124,43 @@ def chefkoch_recipe_meta(recipe_url: str) -> Dict[str, str]:
                 continue
             if not meta["image"]:
                 meta["image"] = image_from_json_ld(data)
+<<<<<<< Updated upstream
             if not meta["description"]:
                 meta["description"] = description_from_json_ld(data)
             if meta["image"] and meta["description"]:
                 break
 
+=======
+            json_description = clean_discovery_description_text(best_json_ld_description(data), title_from_chefkoch_url(recipe_url))
+            json_ingredients = recipe_ingredients_from_json_ld(data)
+            json_instruction = first_instruction_preview_from_json_ld(data)
+            if json_ingredients and not meta.get("ingredients_preview"):
+                meta["ingredients_preview"] = json_ingredients
+            if json_instruction and not meta.get("instruction_preview"):
+                meta["instruction_preview"] = json_instruction
+            candidate_description = build_discovery_description(
+                title_from_chefkoch_url(recipe_url),
+                json_description or str(meta.get("description", "")),
+                list(meta.get("ingredients_preview") or []),
+                str(meta.get("instruction_preview") or ""),
+            )
+            if candidate_description and (not meta["description"] or len(candidate_description) > len(str(meta["description"])) or low_value_description(str(meta["description"]), title_from_chefkoch_url(recipe_url))):
+                meta["description"] = candidate_description
+            if not meta["tags"]:
+                meta["tags"] = tags_from_json_ld(data)
+            if not meta["rating_value"]:
+                rating = rating_from_json_ld(data)
+                meta["rating_value"] = rating.get("rating_value", "")
+                meta["rating_count"] = rating.get("rating_count", "")
+            if meta["image"] and meta["description"] and meta["tags"] and meta["rating_value"] and meta.get("ingredients_preview"):
+                break
+
+        if not meta["rating_value"]:
+            rating = rating_from_html(page)
+            meta["rating_value"] = rating.get("rating_value", "")
+            meta["rating_count"] = rating.get("rating_count", "")
+
+>>>>>>> Stashed changes
         if not meta["image"]:
             match = re.search(r'https?://img\.chefkoch-cdn\.de/[^"\'<>\s]+\.(?:jpg|jpeg|png|webp)(?:\?[^"\'<>\s]*)?', page, flags=re.IGNORECASE)
             if match:
@@ -1718,10 +2169,29 @@ def chefkoch_recipe_meta(recipe_url: str) -> Dict[str, str]:
         if not meta["description"]:
             teaser_match = re.search(r'<p[^>]+class=["\'][^"\']*(?:teaser|summary|description)[^"\']*["\'][^>]*>(.*?)</p>', page, flags=re.IGNORECASE | re.DOTALL)
             if teaser_match:
+<<<<<<< Updated upstream
                 meta["description"] = normalize_recipe_description(teaser_match.group(1))
     except Exception:
         pass
 
+=======
+                meta["description"] = clean_discovery_description_text(teaser_match.group(1), title_from_chefkoch_url(recipe_url))
+    except Exception:
+        pass
+
+    meta["description"] = build_discovery_description(
+        title_from_chefkoch_url(recipe_url),
+        str(meta.get("description", "")),
+        list(meta.get("ingredients_preview") or []),
+        str(meta.get("instruction_preview") or ""),
+    )
+
+    if not meta.get("tags"):
+        meta["tags"] = infer_tags_from_text(title_from_chefkoch_url(recipe_url), str(meta.get("description", "")))
+    if not meta.get("tags"):
+        meta["tags"] = ["Rezept"]
+
+>>>>>>> Stashed changes
     CHEFKOCH_META_CACHE[recipe_url] = meta
     return meta
 
@@ -1783,11 +2253,25 @@ def chefkoch_discovery_search(search: str, limit: int = 6) -> List[Dict[str, Any
         title = re.sub(r"\s+", " ", re.sub(r"^(Rezept|Bild von)\s*:?\s*", "", title, flags=re.IGNORECASE)).strip() or title_from_chefkoch_url(recipe_url)
         meta = chefkoch_recipe_meta(recipe_url)
         image = image_from_chefkoch_snippet(snippet) or meta.get("image", "")
+<<<<<<< Updated upstream
         description = meta.get("description", "") or f"Chefkoch-Rezept: {title}. Beim Importieren wird es zuerst als bearbeitbarer Entwurf geladen."
+=======
+        description = build_discovery_description(
+            title,
+            str(meta.get("description", "") or "").strip(),
+            list(meta.get("ingredients_preview") or []),
+            str(meta.get("instruction_preview") or ""),
+        )
+>>>>>>> Stashed changes
         minutes = ""
         minute_match = re.search(r"(\d{1,3})\s*Min\.", html_lib.unescape(snippet), flags=re.IGNORECASE)
         if minute_match:
             minutes = f"{minute_match.group(1)} Min."
+
+        tags = list(meta.get("tags") or [])
+        for tag in infer_tags_from_text(title, description):
+            add_unique_tag(tags, tag)
+        tags = [tag for tag in tags if clean_recipe_tag(tag)][:3] or ["Rezept"]
 
         results.append({
             "idMeal": recipe_url,
@@ -1797,9 +2281,15 @@ def chefkoch_discovery_search(search: str, limit: int = 6) -> List[Dict[str, Any
             "strMeal": title,
             "titel": title,
             "strMealThumb": image,
-            "strCategory": "Chefkoch",
-            "strArea": "Deutsch",
+            "strCategory": tags[0] if tags else "Rezept",
+            "strArea": tags[1] if len(tags) > 1 else "",
+            "tags": tags,
             "dauer": minutes,
+<<<<<<< Updated upstream
+=======
+            "rating_value": meta.get("rating_value", ""),
+            "rating_count": meta.get("rating_count", ""),
+>>>>>>> Stashed changes
             "description": description,
             "summary": description,
             "strInstructions": description,

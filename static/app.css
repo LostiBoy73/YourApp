@@ -3180,3 +3180,334 @@ ul#einkauf-zutaten > li.shopping-section > h3 span {
     width: 100%;
   }
 }
+<<<<<<< Updated upstream
+=======
+
+/* =========================================================
+   Update 15: Entdecken-Karten mit echten Tags, Bewertung und scrollbarer Beschreibung
+   ========================================================= */
+#entdecken-results .api-card,
+.api-grid .api-card {
+  min-height: 35rem !important;
+  max-height: 35rem !important;
+  overflow: hidden !important;
+}
+
+#entdecken-results .api-card img,
+.api-grid .api-card img,
+#entdecken-results .api-card-placeholder,
+.api-grid .api-card-placeholder {
+  height: 14.6rem !important;
+  min-height: 14.6rem !important;
+  max-height: 14.6rem !important;
+  aspect-ratio: auto !important;
+  object-fit: cover !important;
+  flex: 0 0 auto !important;
+}
+
+#entdecken-results .api-content,
+.api-grid .api-content {
+  min-height: 20.4rem !important;
+  padding: 1.05rem 1.05rem 1rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: .62rem !important;
+}
+
+#entdecken-results .api-content h3,
+.api-grid .api-content h3 {
+  min-height: 3.6rem !important;
+  line-height: 1.16 !important;
+  margin: 0 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
+#entdecken-results .discover-tags,
+.api-grid .discover-tags {
+  min-height: 1.75rem;
+  margin: 0 !important;
+}
+
+.discover-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  min-height: 1.45rem;
+  color: var(--app-muted);
+  font-size: .86rem;
+  font-weight: 850;
+}
+
+.discover-stars {
+  color: var(--app-accent-strong);
+  letter-spacing: .03em;
+  font-size: .95rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+#entdecken-results .api-content .discover-description,
+.api-grid .api-content .discover-description {
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  -webkit-box-orient: initial !important;
+  flex: 1 1 auto !important;
+  min-height: 6.5rem !important;
+  max-height: 8.2rem !important;
+  overflow-y: auto !important;
+  padding-right: .35rem;
+  margin: 0 !important;
+  color: var(--app-muted) !important;
+  line-height: 1.45 !important;
+  scrollbar-width: thin;
+}
+
+#entdecken-results .api-content .card-action,
+.api-grid .api-content .card-action {
+  margin-top: auto !important;
+  width: 100% !important;
+}
+
+@media (max-width: 720px) {
+  #entdecken-results .api-card,
+  .api-grid .api-card {
+    max-height: none !important;
+    min-height: auto !important;
+  }
+
+  #entdecken-results .api-content .discover-description,
+  .api-grid .api-content .discover-description {
+    max-height: 9.5rem !important;
+  }
+}
+
+/* =========================================================
+   Update 16: Entdecken-Karten besser lesbar und mit mehr Abstand
+   ========================================================= */
+#entdecken-results .api-card,
+.api-grid .api-card {
+  min-height: 38rem !important;
+  max-height: 38rem !important;
+}
+
+#entdecken-results .api-card img,
+.api-grid .api-card img,
+#entdecken-results .api-card-placeholder,
+.api-grid .api-card-placeholder {
+  height: 13.8rem !important;
+  min-height: 13.8rem !important;
+  max-height: 13.8rem !important;
+}
+
+#entdecken-results .api-content,
+.api-grid .api-content {
+  min-height: 24.2rem !important;
+  padding: 1.1rem 1.1rem 1.05rem !important;
+  gap: .72rem !important;
+}
+
+#entdecken-results .api-content h3,
+.api-grid .api-content h3 {
+  min-height: 4.05rem !important;
+  margin-bottom: .05rem !important;
+}
+
+#entdecken-results .discover-tags,
+.api-grid .discover-tags {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  align-content: flex-start !important;
+  gap: .38rem !important;
+  min-height: 2.05rem !important;
+  margin: 0 !important;
+}
+
+#entdecken-results .discover-tags .badge,
+.api-grid .discover-tags .badge {
+  line-height: 1 !important;
+}
+
+.discover-rating {
+  width: 100% !important;
+  min-height: 1.75rem !important;
+  padding-top: .08rem !important;
+  margin: .05rem 0 .05rem !important;
+  line-height: 1.2 !important;
+  flex-wrap: wrap !important;
+}
+
+.discover-stars {
+  font-size: .92rem !important;
+  line-height: 1.1 !important;
+}
+
+#entdecken-results .api-content .discover-description,
+.api-grid .api-content .discover-description {
+  min-height: 8.6rem !important;
+  max-height: 9.6rem !important;
+  line-height: 1.5 !important;
+  padding-right: .45rem !important;
+  margin-top: .05rem !important;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 720px) {
+  #entdecken-results .api-card,
+  .api-grid .api-card {
+    min-height: auto !important;
+    max-height: none !important;
+  }
+
+  #entdecken-results .api-content,
+  .api-grid .api-content {
+    min-height: auto !important;
+  }
+
+  #entdecken-results .api-content .discover-description,
+  .api-grid .api-content .discover-description {
+    min-height: 7rem !important;
+    max-height: 11rem !important;
+  }
+}
+
+
+/* =========================================================
+   Update 17: Entdecken-Tags begrenzen und Bewertung sauber trennen
+   ========================================================= */
+#entdecken-results .discover-tags,
+.api-grid .discover-tags {
+  min-height: 2.25rem !important;
+  max-height: 2.25rem !important;
+  overflow: hidden !important;
+  margin-bottom: .62rem !important;
+}
+
+#entdecken-results .discover-tags .badge:nth-child(n+4),
+.api-grid .discover-tags .badge:nth-child(n+4) {
+  display: none !important;
+}
+
+#entdecken-results .discover-rating,
+.api-grid .discover-rating {
+  display: flex !important;
+  align-items: center !important;
+  gap: .42rem !important;
+  width: 100% !important;
+  min-height: 1.65rem !important;
+  margin: 0 0 .7rem !important;
+  padding: .15rem 0 0 !important;
+  line-height: 1.25 !important;
+  clear: both !important;
+}
+
+#entdecken-results .discover-stars,
+.api-grid .discover-stars {
+  display: inline-flex !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+  line-height: 1 !important;
+}
+
+#entdecken-results .api-content .discover-description,
+.api-grid .api-content .discover-description {
+  margin-top: 0 !important;
+}
+
+/* =========================================================
+   Update 18: Entdecken-Karten einheitlicher, Platzhalter, Button entquetschen
+   ========================================================= */
+#entdecken-results .api-card,
+.api-grid .api-card {
+  min-height: 39.5rem !important;
+  max-height: 39.5rem !important;
+}
+
+#entdecken-results .api-content,
+.api-grid .api-content {
+  padding: 1.08rem 1.1rem 1.45rem !important;
+  gap: .58rem !important;
+}
+
+#entdecken-results .discover-tags,
+.api-grid .discover-tags {
+  min-height: 2.15rem !important;
+  max-height: 2.15rem !important;
+  margin-bottom: .72rem !important;
+}
+
+#entdecken-results .discover-tags-empty .badge,
+.api-grid .discover-tags-empty .badge,
+#entdecken-results .discover-rating-empty,
+.api-grid .discover-rating-empty {
+  opacity: .72;
+}
+
+#entdecken-results .discover-rating,
+.api-grid .discover-rating {
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  gap: .36rem !important;
+  margin: 0 0 .75rem !important;
+  min-height: 1.7rem !important;
+  font-size: .8rem !important;
+}
+
+#entdecken-results .discover-rating-text,
+.api-grid .discover-rating-text,
+#entdecken-results .discover-rating-count,
+.api-grid .discover-rating-count {
+  white-space: nowrap !important;
+  min-width: 0 !important;
+}
+
+#entdecken-results .discover-stars,
+.api-grid .discover-stars {
+  font-size: .84rem !important;
+  letter-spacing: .01em !important;
+}
+
+#entdecken-results .discover-stars.is-muted,
+.api-grid .discover-stars.is-muted {
+  color: var(--app-muted) !important;
+  opacity: .65;
+}
+
+#entdecken-results .api-content .discover-description,
+.api-grid .api-content .discover-description {
+  min-height: 6.7rem !important;
+  max-height: 7.55rem !important;
+  line-height: 1.46 !important;
+}
+
+#entdecken-results .api-content .card-action,
+.api-grid .api-content .card-action {
+  margin-top: .65rem !important;
+  margin-bottom: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+@media (max-width: 720px) {
+  #entdecken-results .api-card,
+  .api-grid .api-card {
+    min-height: auto !important;
+    max-height: none !important;
+  }
+
+  #entdecken-results .discover-rating,
+  .api-grid .discover-rating {
+    font-size: .86rem !important;
+  }
+
+  #entdecken-results .api-content .discover-description,
+  .api-grid .api-content .discover-description {
+    min-height: 6rem !important;
+    max-height: 9rem !important;
+  }
+}
+>>>>>>> Stashed changes
