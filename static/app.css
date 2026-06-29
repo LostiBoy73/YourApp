@@ -3121,3 +3121,62 @@ ul#einkauf-zutaten > li.shopping-section > h3 span {
     max-height: 60vh;
   }
 }
+
+/* Update 13: öffentliche Rezepte merken, ohne sie in eigene Rezepte zu kopieren */
+.card-favorite-action,
+.favorite-detail-button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+}
+
+.card-favorite-action svg,
+.favorite-detail-button svg {
+  width: 1rem;
+  height: 1rem;
+  fill: currentColor;
+  flex: 0 0 auto;
+}
+
+.card-favorite-action.is-favorited,
+.favorite-detail-button.is-favorited {
+  background: color-mix(in srgb, var(--app-accent) 22%, var(--app-accent-soft)) !important;
+  color: var(--app-accent-strong) !important;
+  border-color: color-mix(in srgb, var(--app-accent) 55%, var(--app-border)) !important;
+}
+
+.week-card select.week-recipe-select optgroup {
+  color: var(--app-text-muted);
+  font-weight: 800;
+}
+
+.week-card select.week-recipe-select option {
+  color: var(--app-text);
+  background: var(--app-surface-2);
+}
+
+/* Update 14: Rezeptkarten-Aktionen bündig links anordnen */
+.recipe-card-footer {
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: .55rem !important;
+}
+
+.recipe-card-footer .card-cook-action,
+.recipe-card-footer .card-favorite-action {
+  align-self: center !important;
+  margin: 0 !important;
+  min-height: 2.35rem !important;
+}
+
+.recipe-card-footer .recipe-card-open-hint {
+  margin-left: auto !important;
+}
+
+@media (max-width: 520px) {
+  .recipe-card-footer .recipe-card-open-hint {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+}
