@@ -383,6 +383,7 @@ function normalizeRecipe(recipe) {
     zutaten: parseIngredients(recipe.zutaten),
     anleitung: parseSteps(recipe.anleitung),
     is_public: recipe.is_public === true || Number(recipe.is_public || 0) === 1,
+    favorited: recipe.favorited === true || Number(recipe.favorited || 0) === 1,
     source: recipe.source || "manual"
   };
 }
@@ -396,7 +397,8 @@ function iconSVG(name) {
   const icons = {
     user: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.1 0-7 2.1-7 5v1h14v-1c0-2.9-2.9-5-7-5Z"/></svg>',
     clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10.01 10.01 0 0 0 12 2Zm1 10.1 3.5 2.1-.9 1.5L11 13V6h2Z"/></svg>',
-    calendar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3Zm11 8H6v10h12ZM6 8h12V6H6Z"/></svg>'
+    calendar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3Zm11 8H6v10h12ZM6 8h12V6H6Z"/></svg>',
+    star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.9 6.1 6.7.9-4.9 4.7 1.2 6.6L12 17.1l-5.9 3.2 1.2-6.6L2.4 9l6.7-.9L12 2Z"/></svg>'
   };
   return icons[name] || "";
 }
@@ -476,6 +478,11 @@ function renderRecipeCard(rawRecipe, options = {}) {
   const safeId = Number(id) || 0;
   const detailHref = `rezepte_detail.html?id=${encodeURIComponent(id || "")}`;
   const cookHref = `rezepte_detail.html?id=${encodeURIComponent(id || "")}&cook=1`;
+  const canFavorite = Boolean(options.showFavorite && getAuthToken() && recipe.is_public && recipe.owner_name !== getCurrentUsername());
+  const favoriteButton = canFavorite ? `
+    <button type="button" class="card-action card-favorite-action ${recipe.favorited ? "is-favorited" : ""}" data-stop-card-click onclick="toggleFavorite(event, ${safeId}, ${recipe.favorited ? "false" : "true"})" aria-pressed="${recipe.favorited ? "true" : "false"}">
+      ${iconSVG("star")}<span>${recipe.favorited ? "Gemerkt" : "Merken"}</span>
+    </button>` : "";
 
   return `
     <article class="recipe-card recipe-card-with-image recipe-card-clickable"
@@ -498,6 +505,7 @@ function renderRecipeCard(rawRecipe, options = {}) {
         </div>
         <div class="recipe-card-footer">
           <a class="card-action card-cook-action" href="${escapeHTML(cookHref)}" data-stop-card-click onclick="event.stopPropagation()">Direkt kochen</a>
+          ${favoriteButton}
           <span class="recipe-card-open-hint" aria-hidden="true">Details</span>
         </div>
       </div>
@@ -513,6 +521,51 @@ let currentStepIndex = 0;
 function renderRecipeCollection(container, recipes, options) {
   if (!container) return;
   container.innerHTML = recipes.map((recipe) => renderRecipeCard(recipe, options)).join("") || '<div class="empty-note">Keine passenden Rezepte gefunden.</div>';
+}
+
+function updateCachedFavoriteState(recipeId, favorited) {
+  [cachedPublicRecipes, cachedOwnRecipes].forEach((list) => {
+    list.forEach((recipe) => {
+      if (Number(recipe?.id || 0) === Number(recipeId)) recipe.favorited = favorited;
+    });
+  });
+  if (currentDetailRecipe && Number(currentDetailRecipe.id || 0) === Number(recipeId)) {
+    currentDetailRecipe.favorited = favorited;
+  }
+}
+
+async function toggleFavorite(event, recipeId, shouldFavorite = true) {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  if (!requireAuth()) return;
+  if (!recipeId) return;
+  const button = event?.currentTarget || null;
+  if (button) button.disabled = true;
+  try {
+    await apiFetch(`/api/favoriten/${encodeURIComponent(recipeId)}`, {
+      method: shouldFavorite ? "POST" : "DELETE"
+    });
+    updateCachedFavoriteState(recipeId, shouldFavorite);
+    showToast(shouldFavorite
+      ? "Rezept wurde für den Wochenplan gemerkt."
+      : "Rezept wurde aus den Favoriten entfernt.");
+
+    const publicContainer = document.getElementById("public-recipe-list-container");
+    if (publicContainer) renderRecipeCollection(publicContainer, filterRecipes(cachedPublicRecipes), { showFavorite: true });
+
+    const homePublic = document.getElementById("home-public-recipes");
+    if (homePublic && cachedPublicRecipes.length) {
+      homePublic.innerHTML = cachedPublicRecipes.slice(0, 3).map((recipe) => renderRecipeCard(recipe, { showFavorite: true })).join("");
+    }
+
+    if (document.getElementById("detail-favorite-button")) {
+      await loadRezeptDetail();
+    }
+  } catch (error) {
+    showToast(extractErrorMessage(error), "error");
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 
 function filterRecipes(recipes) {
@@ -558,7 +611,8 @@ async function loadHomeDashboard() {
     if (publicContainer) {
       const data = await apiFetch("/api/rezepte/public");
       const publicRecipes = recipeArray(data);
-      publicContainer.innerHTML = publicRecipes.slice(0, 3).map((recipe) => renderRecipeCard(recipe, { showEdit: false })).join("") || '<div class="empty-note">Noch keine öffentlichen Rezepte.</div>';
+      cachedPublicRecipes = publicRecipes;
+      publicContainer.innerHTML = publicRecipes.slice(0, 3).map((recipe) => renderRecipeCard(recipe, { showFavorite: true })).join("") || '<div class="empty-note">Noch keine öffentlichen Rezepte.</div>';
     }
   } catch (error) {
     const message = `<div class="empty-note">${escapeHTML(extractErrorMessage(error))}</div>`;
@@ -587,7 +641,7 @@ async function loadPublicRezepte() {
 
   try {
     cachedPublicRecipes = recipeArray(await apiFetch("/api/rezepte/public"));
-    renderRecipeCollection(container, filterRecipes(cachedPublicRecipes), { showEdit: false, showDelete: false });
+    renderRecipeCollection(container, filterRecipes(cachedPublicRecipes), { showFavorite: true });
   } catch (error) {
     container.innerHTML = `<div class="empty-note">${escapeHTML(extractErrorMessage(error))}</div>`;
   }
@@ -605,7 +659,7 @@ function bindRecipeFilters() {
 
   const rerender = () => {
     renderRecipeCollection(document.getElementById("recipe-list-container"), filterRecipes(cachedOwnRecipes), { showEdit: true, showDelete: true });
-    renderRecipeCollection(document.getElementById("public-recipe-list-container"), filterRecipes(cachedPublicRecipes), { showEdit: false, showDelete: false });
+    renderRecipeCollection(document.getElementById("public-recipe-list-container"), filterRecipes(cachedPublicRecipes), { showFavorite: true });
   };
 
   filterForm?.addEventListener("submit", (event) => {
@@ -1024,9 +1078,15 @@ function ensureDetailRecipeActions(recipe, isOwner, external) {
     header.appendChild(actionBar);
   }
 
+  const favoriteAction = (!isOwner && recipe?.is_public && getAuthToken()) ? `
+    <button type="button" id="detail-favorite-button" class="secondary favorite-detail-button ${recipe.favorited ? "is-favorited" : ""}" onclick="toggleFavorite(event, ${recipeId}, ${recipe.favorited ? "false" : "true"})" aria-pressed="${recipe.favorited ? "true" : "false"}">
+      ${iconSVG("star")}<span>${recipe.favorited ? "Favorit entfernen" : "Für Wochenplan merken"}</span>
+    </button>` : "";
+
   actionBar.innerHTML = `
     <button type="button" class="primary-action" onclick="startKochmodus()">Rezept kochen</button>
     <button type="button" class="secondary" onclick="addRezeptToEinkaufsliste()">Zur Einkaufsliste</button>
+    ${favoriteAction}
   `;
 
   const ingredientList = document.getElementById("detail-zutaten");
@@ -1726,12 +1786,30 @@ function recipeByIdMap(recipes) {
   return map;
 }
 
-function renderRecipeOptions(recipes, selectedId) {
+function uniqueRecipesById(recipes) {
+  const map = new Map();
+  recipes.forEach((recipe) => {
+    const id = Number(recipe?.id || 0);
+    if (id && !map.has(id)) map.set(id, recipe);
+  });
+  return Array.from(map.values());
+}
+
+function renderOptionGroup(label, recipes, selectedId) {
   const selected = String(selectedId || "");
-  return '<option value="">Kein Rezept</option>' + recipes.map((recipe) => {
+  if (!recipes.length) return "";
+  return `<optgroup label="${escapeHTML(label)}">` + recipes.map((recipe) => {
     const id = String(recipe.id || "");
     return `<option value="${escapeHTML(id)}" ${id === selected ? "selected" : ""}>${escapeHTML(getRecipeTitle(recipe))}</option>`;
-  }).join("");
+  }).join("") + "</optgroup>";
+}
+
+function renderRecipeOptions(ownRecipes, selectedId, favoriteRecipes = []) {
+  const ownIds = new Set(ownRecipes.map((recipe) => Number(recipe?.id || 0)).filter(Boolean));
+  const visibleFavorites = favoriteRecipes.filter((recipe) => !ownIds.has(Number(recipe?.id || 0)));
+  return '<option value="">Kein Rezept</option>'
+    + renderOptionGroup("Eigene Rezepte", ownRecipes, selectedId)
+    + renderOptionGroup("Gemerkte öffentliche Rezepte", visibleFavorites, selectedId);
 }
 
 function weekCardImageMarkup(recipe) {
@@ -1753,12 +1831,15 @@ async function loadWochenplan() {
   if (!requireAuth()) return;
 
   try {
-    const [planData, recipeData] = await Promise.all([
+    const [planData, recipeData, favoriteData] = await Promise.all([
       apiFetch("/api/wochenplan"),
-      apiFetch("/api/rezepte?scope=mine")
+      apiFetch("/api/rezepte?scope=mine"),
+      apiFetch("/api/favoriten").catch(() => ({ rezepte: [] }))
     ]);
     const entries = planData?.eintraege || [];
-    const recipes = recipeArray(recipeData);
+    const ownRecipes = recipeArray(recipeData);
+    const favoriteRecipes = recipeArray(favoriteData);
+    const recipes = uniqueRecipesById([...ownRecipes, ...favoriteRecipes]);
     const recipesById = recipeByIdMap(recipes);
     const plannedCount = entries.filter((entry) => entry.rezept_id).length;
 
@@ -1772,7 +1853,17 @@ async function loadWochenplan() {
     container.innerHTML = WEEK_DAYS.map(([day, label, shortLabel]) => {
       const entry = weeklyEntryFor(entries, day);
       const recipeId = Number(entry?.rezept_id || 0);
-      const recipe = recipeId ? recipesById.get(recipeId) : null;
+      const entryRecipe = recipeId && entry?.titel ? normalizeRecipe({
+        id: recipeId,
+        titel: entry.titel,
+        dauer: entry.dauer,
+        kategorie: entry.kategorie,
+        owner_name: entry.owner_name,
+        is_public: entry.is_public,
+        source: entry.source,
+        image_url: entry.image_url
+      }) : null;
+      const recipe = recipeId ? (recipesById.get(recipeId) || entryRecipe) : null;
       const recipeTitle = recipe ? getRecipeTitle(recipe) : "Noch nicht geplant";
       const cookHref = recipeId ? `rezepte_detail.html?id=${encodeURIComponent(recipeId)}&cook=1` : "#";
       const detailHref = recipeId ? `rezepte_detail.html?id=${encodeURIComponent(recipeId)}` : "#";
@@ -1791,7 +1882,7 @@ async function loadWochenplan() {
             <label class="week-select-label">
               <span>Rezept wählen</span>
               <select class="week-recipe-select" onchange="autoSaveWeekCard(this)">
-                ${renderRecipeOptions(recipes, entry?.rezept_id)}
+                ${renderRecipeOptions(ownRecipes, entry?.rezept_id, favoriteRecipes)}
               </select>
             </label>
           </div>

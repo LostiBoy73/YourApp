@@ -139,6 +139,18 @@ def init_db() -> None:
         """
     )
 
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS rezept_favoriten (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner_name TEXT NOT NULL,
+            rezept_id INTEGER NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(owner_name, rezept_id)
+        )
+        """
+    )
+
     add_column_if_missing(conn, "users", "salt", "TEXT")
     add_column_if_missing(conn, "users", "token", "TEXT")
     add_column_if_missing(conn, "users", "created_at", "TEXT DEFAULT CURRENT_TIMESTAMP")
@@ -167,6 +179,10 @@ def init_db() -> None:
     add_column_if_missing(conn, "wochenplan", "notiz", "TEXT DEFAULT ''")
     add_column_if_missing(conn, "wochenplan", "created_at", "TEXT DEFAULT CURRENT_TIMESTAMP")
     add_column_if_missing(conn, "wochenplan", "updated_at", "TEXT DEFAULT CURRENT_TIMESTAMP")
+
+    add_column_if_missing(conn, "rezept_favoriten", "owner_name", "TEXT DEFAULT ''")
+    add_column_if_missing(conn, "rezept_favoriten", "rezept_id", "INTEGER")
+    add_column_if_missing(conn, "rezept_favoriten", "created_at", "TEXT DEFAULT CURRENT_TIMESTAMP")
 
     conn.execute("UPDATE rezepte SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL OR created_at = ''")
     conn.commit()
@@ -590,6 +606,22 @@ def serialize_recipe(row: sqlite3.Row) -> Dict[str, Any]:
     return recipe
 
 
+def favorite_recipe_ids(conn: sqlite3.Connection, owner_name: Optional[str]) -> set[int]:
+    if not owner_name:
+        return set()
+    rows = conn.execute(
+        "SELECT rezept_id FROM rezept_favoriten WHERE owner_name = ?",
+        (owner_name,),
+    ).fetchall()
+    return {int(row["rezept_id"]) for row in rows if row["rezept_id"]}
+
+
+def mark_favorites(recipes: List[Dict[str, Any]], favorite_ids: set[int]) -> List[Dict[str, Any]]:
+    for recipe in recipes:
+        recipe["favorited"] = int(recipe.get("id") or 0) in favorite_ids
+    return recipes
+
+
 # ==========================================
 # API: BASIS
 # ==========================================
@@ -670,7 +702,8 @@ def get_rezepte(request: Request, suche: str = "", kategorie: str = "", scope: s
 
 
 @app.get("/api/rezepte/public")
-def get_public_rezepte() -> Dict[str, Any]:
+def get_public_rezepte(request: Request) -> Dict[str, Any]:
+    current_user = get_current_user(request, required=False)
     conn = get_db_connection()
     rows = conn.execute(
         """
@@ -680,8 +713,75 @@ def get_public_rezepte() -> Dict[str, Any]:
         ORDER BY datetime(created_at) DESC, id DESC
         """
     ).fetchall()
+    favorite_ids = favorite_recipe_ids(conn, current_user)
+    recipes = mark_favorites([serialize_recipe(row) for row in rows], favorite_ids)
     conn.close()
-    return {"success": True, "ok": True, "rezepte": [serialize_recipe(row) for row in rows]}
+    return {"success": True, "ok": True, "rezepte": recipes}
+
+
+@app.get("/api/favoriten")
+def get_favoriten(request: Request) -> Dict[str, Any]:
+    owner_name = get_current_user(request, required=True)
+    conn = get_db_connection()
+    rows = conn.execute(
+        """
+        SELECT r.id, r.titel, r.dauer, r.kategorie, r.zutaten, r.anleitung, r.portionen,
+               r.owner_name, r.is_public, r.source, r.image_url, r.created_at, f.created_at AS favorited_at
+        FROM rezept_favoriten f
+        JOIN rezepte r ON r.id = f.rezept_id
+        WHERE f.owner_name = ? AND r.is_public = 1
+        ORDER BY datetime(f.created_at) DESC, r.titel COLLATE NOCASE ASC
+        """,
+        (owner_name,),
+    ).fetchall()
+    recipes = []
+    for row in rows:
+        recipe = serialize_recipe(row)
+        recipe["favorited"] = True
+        recipe["favorited_at"] = row["favorited_at"]
+        recipes.append(recipe)
+    conn.close()
+    return {"success": True, "ok": True, "rezepte": recipes}
+
+
+@app.post("/api/favoriten/{rezept_id}")
+def add_favorit(rezept_id: int, request: Request) -> Dict[str, Any]:
+    owner_name = get_current_user(request, required=True)
+    conn = get_db_connection()
+    recipe = conn.execute(
+        "SELECT id, owner_name, is_public FROM rezepte WHERE id = ?",
+        (rezept_id,),
+    ).fetchone()
+    if recipe is None:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Rezept nicht gefunden")
+    if int(recipe["is_public"] or 0) != 1:
+        conn.close()
+        raise HTTPException(status_code=403, detail="Nur öffentliche Rezepte können favorisiert werden")
+    if recipe["owner_name"] == owner_name:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Eigene Rezepte stehen bereits im Wochenplan zur Verfügung")
+
+    conn.execute(
+        "INSERT OR IGNORE INTO rezept_favoriten (owner_name, rezept_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
+        (owner_name, rezept_id),
+    )
+    conn.commit()
+    conn.close()
+    return {"success": True, "ok": True, "id": rezept_id, "favorited": True}
+
+
+@app.delete("/api/favoriten/{rezept_id}")
+def remove_favorit(rezept_id: int, request: Request) -> Dict[str, Any]:
+    owner_name = get_current_user(request, required=True)
+    conn = get_db_connection()
+    conn.execute(
+        "DELETE FROM rezept_favoriten WHERE owner_name = ? AND rezept_id = ?",
+        (owner_name, rezept_id),
+    )
+    conn.commit()
+    conn.close()
+    return {"success": True, "ok": True, "id": rezept_id, "favorited": False}
 
 
 @app.get("/api/rezepte/{rezept_id}")
@@ -696,6 +796,8 @@ def get_rezept_detail(rezept_id: int, request: Request) -> Dict[str, Any]:
         """,
         (rezept_id,),
     ).fetchone()
+
+    favorite_ids = favorite_recipe_ids(conn, current_user)
     conn.close()
 
     rezept = row_to_dict(row)
@@ -703,7 +805,9 @@ def get_rezept_detail(rezept_id: int, request: Request) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail="Rezept nicht gefunden")
     if int(rezept.get("is_public") or 0) != 1 and rezept.get("owner_name") != current_user:
         raise HTTPException(status_code=403, detail="Dieses Rezept ist privat")
-    return serialize_recipe(row)
+    serialized = serialize_recipe(row)
+    serialized["favorited"] = int(serialized.get("id") or 0) in favorite_ids
+    return serialized
 
 
 @app.post("/api/rezepte")
@@ -792,6 +896,7 @@ def delete_rezept(rezept_id: int, request: Request) -> Dict[str, Any]:
 
     title = existing["titel"]
     conn.execute("DELETE FROM rezepte WHERE id = ?", (rezept_id,))
+    conn.execute("DELETE FROM rezept_favoriten WHERE rezept_id = ?", (rezept_id,))
     conn.execute(
         "DELETE FROM einkaufsliste WHERE owner_name = ? AND (rezept_titel = ? OR titel = ? OR rezept_id = ?)",
         (owner_name, title, title, rezept_id),
@@ -1267,7 +1372,7 @@ def get_wochenplan(request: Request) -> Dict[str, Any]:
     rows = conn.execute(
         """
         SELECT w.id, w.tag, w.slot, w.rezept_id, w.notiz, w.created_at, w.updated_at,
-               r.titel, r.dauer, r.kategorie, r.owner_name AS rezept_owner, r.is_public
+               r.titel, r.dauer, r.kategorie, r.owner_name AS rezept_owner, r.is_public, r.source, r.image_url
         FROM wochenplan w
         LEFT JOIN rezepte r ON r.id = w.rezept_id
         WHERE w.owner_name = ?
@@ -1289,6 +1394,10 @@ def get_wochenplan(request: Request) -> Dict[str, Any]:
             "titel": item.get("titel") or "",
             "dauer": item.get("dauer") or 0,
             "kategorie": item.get("kategorie") or "",
+            "owner_name": item.get("rezept_owner") or "",
+            "is_public": int(item.get("is_public") or 0),
+            "source": item.get("source") or "manual",
+            "image_url": clean_recipe_image_url(item.get("image_url") or ""),
         })
     return {"success": True, "ok": True, "tage": WOCHENPLAN_DAYS, "eintraege": entries}
 
