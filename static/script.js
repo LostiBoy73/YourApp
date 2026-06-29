@@ -1041,6 +1041,62 @@ function discoverImageSrc(imageUrl) {
   return image;
 }
 
+function normalizeDiscoverTags(meal) {
+  const rawTags = Array.isArray(meal?.tags)
+    ? meal.tags
+    : [meal?.strCategory, meal?.strArea, meal?.category, meal?.area, meal?.kategorie].filter(Boolean);
+  const blocked = new Set(["chefkoch", "deutsch", "german", "rezept", "recipe", "external"]);
+  const tags = [];
+  rawTags.forEach((raw) => {
+    String(raw || "")
+      .split(/[,;|#/]+/)
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+      .forEach((tag) => {
+        const key = tag.toLowerCase();
+        if (blocked.has(key)) return;
+        if (!tags.some((existing) => existing.toLowerCase() === key)) tags.push(tag);
+      });
+  });
+  return tags.slice(0, 3);
+}
+
+function formatGermanNumber(value, digits = 1) {
+  const number = Number(String(value || "").replace(",", "."));
+  if (!Number.isFinite(number) || number <= 0) return "";
+  return number.toLocaleString("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
+function formatGermanCount(value) {
+  const number = Number(String(value || "").replace(/\./g, ""));
+  if (!Number.isFinite(number) || number <= 0) return "";
+  return number.toLocaleString("de-DE");
+}
+
+function renderDiscoverRating(meal) {
+  const rawValue = meal?.rating_value || meal?.ratingValue || meal?.rating || meal?.bewertung || "";
+  const value = Number(String(rawValue).replace(",", "."));
+  if (!Number.isFinite(value) || value <= 0) {
+    return `
+      <div class="discover-rating discover-rating-empty" aria-label="Keine Bewertungen vorhanden">
+        <span class="discover-stars is-muted" aria-hidden="true">☆☆☆☆☆</span>
+        <span class="discover-rating-text">Keine Bewertungen</span>
+      </div>
+    `;
+  }
+  const normalizedValue = Math.max(0, Math.min(5, value));
+  const filled = Math.max(0, Math.min(5, Math.round(normalizedValue)));
+  const stars = `${"★".repeat(filled)}${"☆".repeat(5 - filled)}`;
+  const count = formatGermanCount(meal?.rating_count || meal?.ratingCount || meal?.reviewCount || meal?.bewertung_count || "");
+  const ratingText = `${formatGermanNumber(normalizedValue, 1)} / 5${count ? ` · ${count} Bewertungen` : ""}`;
+  return `
+    <div class="discover-rating" aria-label="Bewertung ${escapeHTML(ratingText)}">
+      <span class="discover-stars" aria-hidden="true">${stars}</span>
+      <span class="discover-rating-text">${escapeHTML(formatGermanNumber(normalizedValue, 1))} / 5${count ? ` · <span class="discover-rating-count">${escapeHTML(count)}&nbsp;Bewertungen</span>` : ""}</span>
+    </div>
+  `;
+}
+
 function replaceBrokenDiscoveryImage(img) {
   const placeholder = document.createElement("div");
   placeholder.className = "api-card-placeholder";
@@ -1712,21 +1768,21 @@ async function loadEntdecken() {
       results.innerHTML = meals.map((meal) => {
         const title = meal.strMeal || meal.titel || meal.title || "Unbekanntes Rezept";
         const image = discoverImageSrc(meal.strMealThumb || meal.image || "");
-        const category = meal.strCategory || meal.kategorie || "Chefkoch";
-        const area = meal.strArea || meal.source || "Deutsch";
-        const description = meal.strInstructions || meal.description || "Beim Importieren wird das Rezept zuerst als bearbeitbarer Entwurf geladen.";
+        const tags = normalizeDiscoverTags(meal);
+        const description = meal.description || meal.summary || meal.strInstructions || "Beim Importieren wird das Rezept zuerst als bearbeitbarer Entwurf geladen.";
         const importValue = meal.url || meal.idMeal || meal.id || "";
         const importArg = escapeHTML(JSON.stringify(importValue));
+        const ratingHTML = renderDiscoverRating(meal);
         return `
           <article class="api-card">
             ${image ? `<img src="${escapeHTML(image)}" alt="${escapeHTML(title)}" loading="lazy" referrerpolicy="no-referrer" onerror="replaceBrokenDiscoveryImage(this)">` : `<div class="api-card-placeholder">KochFlow</div>`}
             <div class="api-content">
               <h3>${escapeHTML(title)}</h3>
-              <div class="recipe-badges">
-                ${category ? `<span class="badge">${escapeHTML(category)}</span>` : ""}
-                ${area ? `<span class="badge badge-muted">${escapeHTML(area)}</span>` : ""}
+              <div class="recipe-badges discover-tags${tags.length ? "" : " discover-tags-empty"}">
+                ${tags.length ? tags.slice(0, 3).map((tag, index) => `<span class="badge${index > 0 ? " badge-muted" : ""}">${escapeHTML(tag)}</span>`).join("") : `<span class="badge badge-muted">Keine Tags</span>`}
               </div>
-              <p>${escapeHTML(String(description).slice(0, 130))}${String(description).length > 130 ? "..." : ""}</p>
+              ${ratingHTML}
+              <p class="discover-description">${escapeHTML(String(description))}</p>
               <button type="button" class="card-action" onclick="apiRezeptImportieren(${importArg}, this)">In meine App importieren</button>
             </div>
           </article>
