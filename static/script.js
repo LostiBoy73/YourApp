@@ -89,10 +89,20 @@ function authHeaders(extraHeaders = {}) {
 }
 
 async function apiFetch(path, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: authHeaders(options.headers || {})
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers: authHeaders(options.headers || {})
+    });
+  } catch (error) {
+    const rawMessage = String(error?.message || error || "");
+    const looksLikeNetworkError = /failed to fetch|networkerror|load failed|cors|err_failed/i.test(rawMessage);
+    if (looksLikeNetworkError || error instanceof TypeError) {
+      throw new Error("API nicht erreichbar. Prüfe Backend-Neustart, CORS-Freigabe und ob du die App über die richtige Domain öffnest.");
+    }
+    throw error;
+  }
 
   let payload = null;
   const contentType = response.headers.get("content-type") || "";
@@ -616,11 +626,87 @@ function renderIngredientText(zutat, factor = 1) {
   return [mengeText, item.einheit || "", item.name || item.zutat || item.text || ""].filter(Boolean).join(" ");
 }
 
+function normalizeIngredientForMatch(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function getIngredientName(value) {
+  if (typeof value === "string") return parseIngredientLine(value)?.name || value;
+  return value?.name || value?.zutat || value?.text || "";
+}
+
+function ingredientMentionedInStep(ingredient, stepText) {
+  const name = normalizeIngredientForMatch(getIngredientName(ingredient));
+  const text = normalizeIngredientForMatch(stepText);
+  if (!name || name.length < 3 || !text) return false;
+
+  const candidates = new Set([name]);
+  name.split(" ").forEach((part) => {
+    if (part.length >= 4) candidates.add(part);
+    if (part.endsWith("en") && part.length >= 6) candidates.add(part.slice(0, -2));
+    if ((part.endsWith("e") || part.endsWith("n") || part.endsWith("s")) && part.length >= 5) candidates.add(part.slice(0, -1));
+  });
+
+  for (const candidate of candidates) {
+    if (candidate.length < 3) continue;
+    const escaped = candidate.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp(`(^|\\s)${escaped}($|\\s)`, "i").test(text)) return true;
+  }
+  return false;
+}
+
+function explicitStepIngredients(step) {
+  if (!step || typeof step === "string") return [];
+  const raw = step.zutaten || step.ingredients || step.step_ingredients || step.zutatenliste || step.items || "";
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.map((item) => renderIngredientText(item)).filter(Boolean);
+  return String(raw).split(/[;,\n]+/).map((item) => item.trim()).filter(Boolean);
+}
+
+function inferStepIngredients(step, stepText) {
+  const explicit = explicitStepIngredients(step);
+  if (explicit.length) return explicit;
+
+  const ingredients = currentDetailRecipe?.zutaten || [];
+  const found = [];
+  const seen = new Set();
+  ingredients.forEach((ingredient) => {
+    if (!ingredientMentionedInStep(ingredient, stepText)) return;
+    const label = renderIngredientText(ingredient).trim() || getIngredientName(ingredient);
+    const key = normalizeIngredientForMatch(label);
+    if (!label || seen.has(key)) return;
+    seen.add(key);
+    found.push(label);
+  });
+  return found.slice(0, 6);
+}
+
+function renderStepIngredientChips(step, stepText, chipClass = "koch-step-ingredient") {
+  const ingredients = inferStepIngredients(step, stepText);
+  if (!ingredients.length) return "";
+  return `
+    <div class="koch-step-ingredients" aria-label="Zutaten für diesen Schritt">
+      <span class="koch-step-chip-label">Zutaten</span>
+      ${ingredients.map((ingredient) => `<span class="${chipClass}">${escapeHTML(ingredient)}</span>`).join("")}
+    </div>
+  `;
+}
+
 function normalizeStepForDisplay(step) {
   if (typeof step === "string") step = parseStepLine(step);
   return {
     dauer: Number(step?.dauer || 0),
-    text: step?.schritt || step?.text || ""
+    text: step?.schritt || step?.text || "",
+    raw: step
   };
 }
 
@@ -648,14 +734,39 @@ function renderKochStepContent(step, index, total) {
   const normalized = normalizeStepForDisplay(step);
   const duration = normalized.dauer ? `<span class="koch-step-duration">${escapeHTML(`${normalized.dauer} Min.`)}</span>` : "";
   const text = normalized.text || "Kein Arbeitsschritt angegeben.";
+  const ingredientChips = renderStepIngredientChips(normalized.raw, text);
 
   return `
     <div class="koch-step-display">
       <div class="koch-step-kicker">Schritt ${index + 1} von ${total}</div>
-      ${duration}
+      <div class="koch-step-info">
+        ${duration ? `<div class="koch-step-time-row">${duration}</div>` : ""}
+        ${ingredientChips ? `<div class="koch-step-chip-divider" aria-hidden="true"></div>${ingredientChips}` : ""}
+      </div>
       <div class="koch-step-text">${escapeHTML(text)}</div>
     </div>
   `;
+}
+
+function adaptKochStepTypography() {
+  const overlay = document.getElementById("kochmodus-overlay");
+  if (!overlay || overlay.hidden) return;
+  const area = overlay.querySelector(".koch-inhalt");
+  if (!area) return;
+
+  overlay.classList.remove("koch-text-compact", "koch-text-ultra-compact");
+
+  requestAnimationFrame(() => {
+    const needsCompact = area.scrollHeight > area.clientHeight + 6;
+    if (!needsCompact) return;
+    overlay.classList.add("koch-text-compact");
+
+    requestAnimationFrame(() => {
+      if (area.scrollHeight > area.clientHeight + 6) {
+        overlay.classList.add("koch-text-ultra-compact");
+      }
+    });
+  });
 }
 
 async function loadRezeptDetail() {
@@ -791,6 +902,7 @@ function renderKochStep() {
   if (progress) progress.textContent = steps.length ? `${currentStepIndex + 1} / ${steps.length}` : "0 / 0";
   if (prev) prev.disabled = currentStepIndex <= 0;
   if (next) next.textContent = currentStepIndex >= steps.length - 1 ? "Fertig" : "Weiter";
+  adaptKochStepTypography();
 }
 
 function nextStep() {
@@ -1865,6 +1977,10 @@ function initAuthForms() {
 function beendeKochmodus() { closeKochmodus(); }
 function naechsterSchritt() { nextStep(); }
 function vorherigerSchritt() { prevStep(); }
+
+window.addEventListener("resize", () => {
+  if (!document.getElementById("kochmodus-overlay")?.hidden) adaptKochStepTypography();
+});
 
 window.addEventListener("DOMContentLoaded", () => {
   replaceBrandMarks();

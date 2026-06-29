@@ -2897,3 +2897,227 @@ ul#einkauf-zutaten > li.shopping-section > h3 span {
     display: inline-flex !important;
   }
 }
+
+/* =========================================================
+   Update 11: Kochmodus kompakter + Zutatenchips pro Schritt
+   ========================================================= */
+#kochmodus-overlay .koch-step-info {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+  max-width: min(100%, 58rem);
+  margin: 0 auto .4rem;
+}
+
+#kochmodus-overlay .koch-step-duration {
+  min-height: 2.5rem !important;
+  padding: 0 1rem !important;
+  font-size: clamp(1rem, 1.7vw, 1.35rem) !important;
+  font-weight: 900 !important;
+}
+
+#kochmodus-overlay .koch-step-ingredients {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  flex-wrap: wrap;
+  max-width: min(100%, 48rem);
+}
+
+#kochmodus-overlay .koch-step-ingredient {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0 .9rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 28%, var(--app-border));
+  background: color-mix(in srgb, var(--app-surface) 78%, var(--app-accent-soft));
+  color: var(--app-text);
+  font-size: clamp(.9rem, 1.2vw, 1.05rem);
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+#kochmodus-overlay .koch-step-text {
+  font-size: clamp(1.65rem, 3.2vw, 3.35rem) !important;
+  font-weight: 650 !important;
+  line-height: 1.32 !important;
+  letter-spacing: -.025em !important;
+  max-width: min(100%, 62rem);
+  margin-top: .25rem;
+}
+
+@media (max-width: 720px) {
+  #kochmodus-overlay .koch-step-info {
+    gap: .55rem;
+    margin-bottom: .35rem;
+  }
+
+  #kochmodus-overlay .koch-step-duration,
+  #kochmodus-overlay .koch-step-ingredient {
+    min-height: 2.25rem !important;
+    padding: 0 .75rem !important;
+  }
+
+  #kochmodus-overlay .koch-step-text {
+    font-size: clamp(1.45rem, 8vw, 2.65rem) !important;
+  }
+}
+
+/* =========================================================
+   Update 12: Kochmodus dynamisch kompakt + Einkaufsliste begrenzt
+   ========================================================= */
+#kochmodus-overlay .koch-step-info {
+  flex-direction: column !important;
+  gap: .65rem !important;
+  max-width: min(100%, 64rem) !important;
+  margin-bottom: .7rem !important;
+}
+
+#kochmodus-overlay .koch-step-time-row {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+#kochmodus-overlay .koch-step-chip-divider {
+  width: min(100%, 28rem);
+  height: 1px;
+  background: color-mix(in srgb, var(--app-border) 65%, transparent);
+  margin: .05rem auto .1rem;
+}
+
+#kochmodus-overlay .koch-step-ingredients {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  flex-wrap: wrap;
+  max-width: min(100%, 56rem) !important;
+}
+
+#kochmodus-overlay .koch-step-chip-label,
+#kochmodus-overlay .koch-step-ingredient {
+  min-height: 2.25rem !important;
+  padding: 0 .85rem !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+#kochmodus-overlay .koch-step-chip-label {
+  border: 1px solid color-mix(in srgb, var(--app-border) 82%, transparent);
+  background: color-mix(in srgb, var(--app-surface-2) 75%, transparent);
+  color: var(--app-muted);
+  font-size: clamp(.78rem, 1vw, .92rem);
+  font-weight: 850;
+}
+
+#kochmodus-overlay .koch-step-ingredient {
+  border: 1px solid color-mix(in srgb, var(--app-accent) 28%, var(--app-border));
+  background: color-mix(in srgb, var(--app-surface) 78%, var(--app-accent-soft));
+  color: var(--app-text);
+  font-size: clamp(.8rem, 1.05vw, .98rem) !important;
+  font-weight: 760 !important;
+}
+
+#kochmodus-overlay .koch-step-text {
+  font-size: clamp(1.45rem, 2.75vw, 2.85rem) !important;
+  font-weight: 500 !important;
+  line-height: 1.34 !important;
+  letter-spacing: -.018em !important;
+  max-width: min(100%, 64rem) !important;
+}
+
+#kochmodus-overlay.koch-text-compact .koch-inhalt {
+  padding-top: clamp(1.1rem, 2.6vh, 2.4rem) !important;
+  padding-bottom: clamp(1.1rem, 2.6vh, 2.4rem) !important;
+}
+
+#kochmodus-overlay.koch-text-compact .koch-step-display {
+  gap: .65rem !important;
+}
+
+#kochmodus-overlay.koch-text-compact .koch-step-kicker {
+  font-size: clamp(.82rem, 1.2vw, 1rem) !important;
+}
+
+#kochmodus-overlay.koch-text-compact .koch-step-duration,
+#kochmodus-overlay.koch-text-compact .koch-step-chip-label,
+#kochmodus-overlay.koch-text-compact .koch-step-ingredient {
+  min-height: 2rem !important;
+  padding: 0 .7rem !important;
+  font-size: clamp(.72rem, .95vw, .88rem) !important;
+}
+
+#kochmodus-overlay.koch-text-compact .koch-step-text {
+  font-size: clamp(1.1rem, 2.15vw, 2.05rem) !important;
+  line-height: 1.3 !important;
+  max-width: min(100%, 58rem) !important;
+}
+
+#kochmodus-overlay.koch-text-ultra-compact .koch-step-info {
+  gap: .42rem !important;
+  margin-bottom: .35rem !important;
+}
+
+#kochmodus-overlay.koch-text-ultra-compact .koch-step-chip-divider {
+  margin: 0 auto !important;
+}
+
+#kochmodus-overlay.koch-text-ultra-compact .koch-step-text {
+  font-size: clamp(.95rem, 1.72vw, 1.55rem) !important;
+  line-height: 1.24 !important;
+  max-width: min(100%, 54rem) !important;
+}
+
+#einkauf-zutaten {
+  max-height: clamp(22rem, 58vh, 42rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: .35rem;
+  scrollbar-gutter: stable;
+}
+
+#einkauf-zutaten::-webkit-scrollbar {
+  width: .55rem;
+}
+
+#einkauf-zutaten::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-border) 85%, transparent);
+}
+
+#einkauf-zutaten::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (max-width: 720px) {
+  #kochmodus-overlay .koch-step-info {
+    gap: .5rem !important;
+  }
+
+  #kochmodus-overlay .koch-step-text {
+    font-size: clamp(1.28rem, 7vw, 2.15rem) !important;
+  }
+
+  #kochmodus-overlay.koch-text-compact .koch-step-text {
+    font-size: clamp(1rem, 5.4vw, 1.55rem) !important;
+  }
+
+  #kochmodus-overlay.koch-text-ultra-compact .koch-step-text {
+    font-size: clamp(.9rem, 4.6vw, 1.25rem) !important;
+  }
+
+  #einkauf-zutaten {
+    max-height: 60vh;
+  }
+}

@@ -24,17 +24,28 @@ MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 app = FastAPI(title="KochFlow API")
 
+ALLOWED_ORIGINS = [
+    "https://robots-compliance.cc",
+    "https://www.robots-compliance.cc",
+    "https://lostiboy73.github.io",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+# Zusätzlich zur festen Liste: lokale Tests auf beliebigen Ports und GitHub-Pages-Forks erlauben.
+# CORSMiddleware beantwortet damit auch OPTIONS-Preflight-Anfragen sauber.
+ALLOWED_ORIGIN_REGEX = (
+    r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
+    r"|^https://(www\.)?robots-compliance\.cc$"
+    r"|^https://[a-z0-9-]+\.github\.io$"
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://robots-compliance.cc",
-        "https://www.robots-compliance.cc",
-        "https://lostiboy73.github.io",
-        "http://localhost:5500",
-        "http://127.0.0.1:5500",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=ALLOWED_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1462,7 +1473,7 @@ def image_from_chefkoch_snippet(snippet: str) -> str:
     return ""
 
 
-CHEFKOCH_IMAGE_CACHE: Dict[str, str] = {}
+CHEFKOCH_META_CACHE: Dict[str, Dict[str, str]] = {}
 
 
 def normalize_image_url(value: str) -> str:
@@ -1476,6 +1487,27 @@ def normalize_image_url(value: str) -> str:
     if re.search(r"\.(jpg|jpeg|png|webp)(\?|$)", url, flags=re.IGNORECASE):
         return url
     return ""
+
+
+def clean_html_text(value: str) -> str:
+    text = html_lib.unescape(str(value or ""))
+    text = re.sub(r"<script[^>]*>.*?</script>", " ", text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r"<style[^>]*>.*?</style>", " ", text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\s+", " ", text).strip(" -–—\t\n\r")
+    return text
+
+
+def normalize_recipe_description(value: Any) -> str:
+    text = clean_html_text(str(value or ""))
+    text = re.sub(r"^Chefkoch\s*[-–:]\s*", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"\s*\|\s*Chefkoch(?:\.de)?\s*$", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"\s*-\s*Wir haben\s+\d+\s+.*$", "", text, flags=re.IGNORECASE).strip()
+    if len(text) < 20:
+        return ""
+    if len(text) > 260:
+        text = text[:257].rsplit(" ", 1)[0].rstrip(" .,;:-") + "..."
+    return text
 
 
 def image_from_json_ld(value: Any) -> str:
@@ -1502,12 +1534,35 @@ def image_from_json_ld(value: Any) -> str:
     return ""
 
 
-def chefkoch_recipe_image(recipe_url: str) -> str:
-    if recipe_url in CHEFKOCH_IMAGE_CACHE:
-        return CHEFKOCH_IMAGE_CACHE[recipe_url]
-    image = ""
+def description_from_json_ld(value: Any) -> str:
+    if isinstance(value, list):
+        for item in value:
+            found = description_from_json_ld(item)
+            if found:
+                return found
+    if isinstance(value, dict):
+        for key in ("description", "abstract"):
+            found = normalize_recipe_description(value.get(key))
+            if found:
+                return found
+        for key in ("@graph", "mainEntity", "item"):
+            found = description_from_json_ld(value.get(key))
+            if found:
+                return found
+    return ""
+
+
+def chefkoch_recipe_meta(recipe_url: str) -> Dict[str, str]:
+    if recipe_url in CHEFKOCH_META_CACHE:
+        return CHEFKOCH_META_CACHE[recipe_url]
+
+    meta = {"image": "", "description": ""}
     try:
-        response = requests.get(recipe_url, headers={**CHEFKOCH_HEADERS, "Referer": "https://www.chefkoch.de/"}, timeout=12)
+        response = requests.get(
+            recipe_url,
+            headers={**CHEFKOCH_HEADERS, "Referer": "https://www.chefkoch.de/"},
+            timeout=12,
+        )
         response.raise_for_status()
         page = response.text
 
@@ -1518,28 +1573,56 @@ def chefkoch_recipe_image(recipe_url: str) -> str:
         ):
             match = re.search(pattern, page, flags=re.IGNORECASE)
             if match:
-                image = normalize_image_url(match.group(1))
-                if image:
+                meta["image"] = normalize_image_url(match.group(1))
+                if meta["image"]:
                     break
 
-        if not image:
-            for script in re.findall(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', page, flags=re.IGNORECASE | re.DOTALL):
-                try:
-                    found = image_from_json_ld(json.loads(html_lib.unescape(script.strip())))
-                except Exception:
-                    found = ""
-                if found:
-                    image = found
+        for pattern in (
+            r'<meta[^>]+property=["\']og:description["\'][^>]+content=["\']([^"\']+)["\']',
+            r'<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']+)["\']',
+            r'<meta[^>]+name=["\']twitter:description["\'][^>]+content=["\']([^"\']+)["\']',
+            r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:description["\']',
+        ):
+            match = re.search(pattern, page, flags=re.IGNORECASE)
+            if match:
+                meta["description"] = normalize_recipe_description(match.group(1))
+                if meta["description"]:
                     break
 
-        if not image:
+        for script in re.findall(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', page, flags=re.IGNORECASE | re.DOTALL):
+            try:
+                data = json.loads(html_lib.unescape(script.strip()))
+            except Exception:
+                continue
+            if not meta["image"]:
+                meta["image"] = image_from_json_ld(data)
+            if not meta["description"]:
+                meta["description"] = description_from_json_ld(data)
+            if meta["image"] and meta["description"]:
+                break
+
+        if not meta["image"]:
             match = re.search(r'https?://img\.chefkoch-cdn\.de/[^"\'<>\s]+\.(?:jpg|jpeg|png|webp)(?:\?[^"\'<>\s]*)?', page, flags=re.IGNORECASE)
             if match:
-                image = normalize_image_url(match.group(0))
+                meta["image"] = normalize_image_url(match.group(0))
+
+        if not meta["description"]:
+            teaser_match = re.search(r'<p[^>]+class=["\'][^"\']*(?:teaser|summary|description)[^"\']*["\'][^>]*>(.*?)</p>', page, flags=re.IGNORECASE | re.DOTALL)
+            if teaser_match:
+                meta["description"] = normalize_recipe_description(teaser_match.group(1))
     except Exception:
-        image = ""
-    CHEFKOCH_IMAGE_CACHE[recipe_url] = image
-    return image
+        pass
+
+    CHEFKOCH_META_CACHE[recipe_url] = meta
+    return meta
+
+
+def chefkoch_recipe_image(recipe_url: str) -> str:
+    return chefkoch_recipe_meta(recipe_url).get("image", "")
+
+
+def chefkoch_recipe_description(recipe_url: str) -> str:
+    return chefkoch_recipe_meta(recipe_url).get("description", "")
 
 
 @app.get("/api/image")
@@ -1589,7 +1672,9 @@ def chefkoch_discovery_search(search: str, limit: int = 6) -> List[Dict[str, Any
 
         title = first_attr_value(snippet, "aria-label", "title", "alt") or title_from_chefkoch_url(recipe_url)
         title = re.sub(r"\s+", " ", re.sub(r"^(Rezept|Bild von)\s*:?\s*", "", title, flags=re.IGNORECASE)).strip() or title_from_chefkoch_url(recipe_url)
-        image = image_from_chefkoch_snippet(snippet) or chefkoch_recipe_image(recipe_url)
+        meta = chefkoch_recipe_meta(recipe_url)
+        image = image_from_chefkoch_snippet(snippet) or meta.get("image", "")
+        description = meta.get("description", "") or f"Chefkoch-Rezept: {title}. Beim Importieren wird es zuerst als bearbeitbarer Entwurf geladen."
         minutes = ""
         minute_match = re.search(r"(\d{1,3})\s*Min\.", html_lib.unescape(snippet), flags=re.IGNORECASE)
         if minute_match:
@@ -1606,7 +1691,9 @@ def chefkoch_discovery_search(search: str, limit: int = 6) -> List[Dict[str, Any
             "strCategory": "Chefkoch",
             "strArea": "Deutsch",
             "dauer": minutes,
-            "strInstructions": "Chefkoch-Rezept. Beim Importieren wird es zuerst als bearbeitbarer Entwurf geladen.",
+            "description": description,
+            "summary": description,
+            "strInstructions": description,
         })
         if len(results) >= limit:
             break
