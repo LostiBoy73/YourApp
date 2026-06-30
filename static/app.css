@@ -3180,8 +3180,6 @@ ul#einkauf-zutaten > li.shopping-section > h3 span {
     width: 100%;
   }
 }
-<<<<<<< Updated upstream
-=======
 
 /* =========================================================
    Update 15: Entdecken-Karten mit echten Tags, Bewertung und scrollbarer Beschreibung
@@ -3510,4 +3508,45 @@ ul#einkauf-zutaten > li.shopping-section > h3 span {
     max-height: 9rem !important;
   }
 }
->>>>>>> Stashed changes
+
+/* Update 19: manuelle Einheit + Root-Verwaltung */
+.manual-shopping-grid.manual-shopping-grid-three {
+  grid-template-columns: minmax(5.5rem, .45fr) minmax(5.5rem, .45fr) minmax(0, 1fr);
+}
+
+.root-admin-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 1rem;
+  padding: .95rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--app-danger) 34%, var(--app-border));
+  border-radius: var(--app-radius);
+  background: color-mix(in srgb, var(--app-danger) 8%, var(--app-surface));
+}
+
+.root-admin-controls div {
+  display: grid;
+  gap: .18rem;
+}
+
+.root-admin-controls strong {
+  color: var(--app-text);
+}
+
+.root-admin-controls span {
+  color: var(--app-muted);
+  font-size: .9rem;
+}
+
+@media (max-width: 720px) {
+  .manual-shopping-grid.manual-shopping-grid-three {
+    grid-template-columns: 1fr;
+  }
+
+  .root-admin-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

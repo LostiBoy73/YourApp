@@ -4,6 +4,7 @@ import hashlib
 import html as html_lib
 import json
 import mimetypes
+import os
 import re
 import secrets
 import sqlite3
@@ -20,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "rezepte.db"
 UPLOAD_DIR = BASE_DIR / "uploads"
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
-MAX_IMAGE_BYTES = 10 * 1024 * 1024
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 app = FastAPI(title="KochFlow API")
 
@@ -364,13 +365,34 @@ def get_current_user(request: Request, required: bool = True) -> Optional[str]:
     return row["username"]
 
 
+def root_usernames() -> set[str]:
+    raw = os.getenv("KOCHFLOW_ROOT_USERS", "root")
+    return {name.strip().lower() for name in raw.split(",") if name.strip()}
+
+
+def is_root_user(username: Optional[str]) -> bool:
+    return bool(username and username.strip().lower() in root_usernames())
+
+
+def can_manage_recipe(username: Optional[str], recipe_owner: Optional[str]) -> bool:
+    return is_root_user(username) or bool(username and recipe_owner and str(recipe_owner) == str(username))
+
+
+def require_root_user(request: Request) -> str:
+    username = get_current_user(request, required=True)
+    if not is_root_user(username):
+        raise HTTPException(status_code=403, detail="Nur Root-User dürfen diese Aktion ausführen")
+    return username
+
+
 def auth_response(username: str, token: str) -> Dict[str, Any]:
     return {
         "success": True,
         "ok": True,
         "username": username,
-        "user": {"username": username},
+        "user": {"username": username, "is_root": is_root_user(username)},
         "token": token,
+        "is_root": is_root_user(username),
     }
 
 
@@ -650,13 +672,19 @@ def get_uploaded_image(filename: str) -> FileResponse:
 @app.get("/api/rezepte")
 def get_rezepte(request: Request, suche: str = "", kategorie: str = "", scope: str = "mine") -> Dict[str, Any]:
     scope = scope.strip().lower()
-    owner_name = get_current_user(request, required=(scope == "mine")) if scope != "public" else None
+    if scope == "public":
+        owner_name = get_current_user(request, required=False)
+    else:
+        owner_name = get_current_user(request, required=True)
 
     conn = get_db_connection()
     params: List[Any] = []
     if scope == "public":
         where_clause = "WHERE is_public = 1"
     elif scope == "all":
+        if not is_root_user(owner_name):
+            conn.close()
+            raise HTTPException(status_code=403, detail="Alle Rezepte dürfen nur Root-User laden")
         where_clause = ""
     else:
         where_clause = "WHERE owner_name = ?"
@@ -803,7 +831,7 @@ def get_rezept_detail(rezept_id: int, request: Request) -> Dict[str, Any]:
     rezept = row_to_dict(row)
     if rezept is None:
         raise HTTPException(status_code=404, detail="Rezept nicht gefunden")
-    if int(rezept.get("is_public") or 0) != 1 and rezept.get("owner_name") != current_user:
+    if int(rezept.get("is_public") or 0) != 1 and not can_manage_recipe(current_user, rezept.get("owner_name")):
         raise HTTPException(status_code=403, detail="Dieses Rezept ist privat")
     serialized = serialize_recipe(row)
     serialized["favorited"] = int(serialized.get("id") or 0) in favorite_ids
@@ -828,7 +856,11 @@ async def create_rezept(request: Request) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail="Anleitung fehlt")
 
     uploaded_image_url = await save_uploaded_recipe_image(raw_data)
-    image_url = uploaded_image_url or data.get("image_url", "")
+    if is_external_source(source):
+        # Externe Chefkoch-Bilder werden nur in Entdecken angezeigt, aber nicht in eigene Rezeptdaten übernommen.
+        image_url = uploaded_image_url
+    else:
+        image_url = uploaded_image_url or data.get("image_url", "")
 
     conn = get_db_connection()
     cursor = conn.execute(
@@ -856,7 +888,7 @@ async def update_rezept(rezept_id: int, request: Request) -> Dict[str, Any]:
     if existing is None:
         conn.close()
         raise HTTPException(status_code=404, detail="Rezept nicht gefunden")
-    if existing["owner_name"] != owner_name:
+    if not can_manage_recipe(owner_name, existing["owner_name"]):
         conn.close()
         raise HTTPException(status_code=403, detail="Du kannst nur eigene Rezepte bearbeiten")
 
@@ -866,7 +898,12 @@ async def update_rezept(rezept_id: int, request: Request) -> Dict[str, Any]:
         image_url = ""
     else:
         uploaded_image_url = await save_uploaded_recipe_image(raw_data)
-        image_url = uploaded_image_url or data.get("image_url") or clean_recipe_image_url(existing["image_url"] or "")
+        existing_image = clean_recipe_image_url(existing["image_url"] or "")
+        if is_external_source(source):
+            # Bei importierten Rezepten nur eigene Uploads behalten, keine externen Chefkoch-Bildlinks speichern.
+            image_url = uploaded_image_url or (existing_image if existing_image.startswith("/api/uploads/") or existing_image.startswith("/uploads/") else "")
+        else:
+            image_url = uploaded_image_url or data.get("image_url") or existing_image
 
     conn.execute(
         """
@@ -890,7 +927,7 @@ def delete_rezept(rezept_id: int, request: Request) -> Dict[str, Any]:
     if existing is None:
         conn.close()
         raise HTTPException(status_code=404, detail="Rezept nicht gefunden")
-    if existing["owner_name"] != owner_name:
+    if not can_manage_recipe(owner_name, existing["owner_name"]):
         conn.close()
         raise HTTPException(status_code=403, detail="Du kannst nur eigene Rezepte löschen")
 
@@ -906,6 +943,20 @@ def delete_rezept(rezept_id: int, request: Request) -> Dict[str, Any]:
     return {"success": True, "ok": True}
 
 
+@app.delete("/api/admin/rezepte")
+def admin_delete_all_rezepte(request: Request) -> Dict[str, Any]:
+    root_name = require_root_user(request)
+    conn = get_db_connection()
+    count = conn.execute("SELECT COUNT(*) AS count FROM rezepte").fetchone()["count"]
+    conn.execute("DELETE FROM einkaufsliste")
+    conn.execute("DELETE FROM wochenplan")
+    conn.execute("DELETE FROM rezept_favoriten")
+    conn.execute("DELETE FROM rezepte")
+    conn.commit()
+    conn.close()
+    return {"success": True, "ok": True, "deleted": int(count or 0), "root": root_name}
+
+
 @app.post("/api/rezepte/{rezept_id}/visibility")
 async def update_rezept_visibility(rezept_id: int, request: Request) -> Dict[str, Any]:
     owner_name = get_current_user(request, required=True)
@@ -917,7 +968,7 @@ async def update_rezept_visibility(rezept_id: int, request: Request) -> Dict[str
     if existing is None:
         conn.close()
         raise HTTPException(status_code=404, detail="Rezept nicht gefunden")
-    if existing["owner_name"] != owner_name:
+    if not can_manage_recipe(owner_name, existing["owner_name"]):
         conn.close()
         raise HTTPException(status_code=403, detail="Du kannst nur eigene Rezepte veröffentlichen")
 
@@ -938,6 +989,27 @@ KNOWN_UNITS = {
     "stk", "stück", "stueck", "dose", "dosen", "packung", "packungen", "päckchen", "paeckchen",
     "becher", "tasse", "tassen", "cup", "cups", "prise", "prisen", "bund", "scheibe", "scheiben"
 }
+
+UNIT_ALIASES = {
+    "gramm": "g", "gr": "g", "kilogramm": "kg", "kilo": "kg",
+    "milliliter": "ml", "liter": "l", "ltr": "l",
+    "teelöffel": "TL", "teeloeffel": "TL", "tl": "TL", "tsp": "TL",
+    "esslöffel": "EL", "essloeffel": "EL", "el": "EL", "tbsp": "EL",
+    "stück": "Stk", "stueck": "Stk", "stk": "Stk", "st": "Stk",
+    "dosen": "Dose", "dose": "Dose",
+    "packungen": "Packung", "packung": "Packung",
+    "päckchen": "Päckchen", "paeckchen": "Päckchen",
+    "tassen": "Tasse", "tasse": "Tasse", "cups": "Cup", "cup": "Cup",
+    "prisen": "Prise", "prise": "Prise",
+    "scheiben": "Scheibe", "scheibe": "Scheibe",
+}
+
+
+def normalize_unit(value: Any) -> str:
+    raw = str(value or "").strip().rstrip(".")
+    if not raw:
+        return ""
+    return UNIT_ALIASES.get(raw.lower(), raw)
 
 UNICODE_FRACTIONS = {
     "½": 0.5,
@@ -986,18 +1058,31 @@ def format_amount_number(value: float) -> str:
     return f"{value:.2f}".rstrip("0").rstrip(".").replace(".", ",")
 
 
+def scale_amount_text(amount: Any, multiplier: int = 1) -> str:
+    text = str(amount or "").strip()
+    multiplier = max(1, safe_int(multiplier, 1))
+    if multiplier <= 1:
+        return text
+    if not text:
+        return str(multiplier)
+    number = parse_amount_number(text)
+    if number is not None:
+        return format_amount_number(number * multiplier)
+    return f"{multiplier} x {text}"
+
+
 def split_amount_and_unit(amount: str, unit: str = "") -> tuple[str, str]:
     amount_text = str(amount or "").strip()
-    unit_text = str(unit or "").strip()
+    unit_text = normalize_unit(unit)
     if unit_text or not amount_text:
         return amount_text, unit_text
     match = re.match(r"^([0-9]+(?:[.,][0-9]+)?(?:\s+[0-9]+/[0-9]+)?|[0-9]+/[0-9]+|[¼½¾⅓⅔⅛⅜⅝⅞])\s+(.+)$", amount_text)
     if not match:
         return amount_text, unit_text
     number, rest = match.group(1).strip(), match.group(2).strip()
-    first, _, remainder = rest.partition(" ")
+    first, _, _remainder = rest.partition(" ")
     if first.lower().rstrip(".") in KNOWN_UNITS:
-        return number, first
+        return number, normalize_unit(first)
     return amount_text, unit_text
 
 
@@ -1018,15 +1103,28 @@ def parse_ingredient_line(line: str) -> tuple[str, str, str]:
     first, sep, remainder = rest.partition(" ")
     first_clean = first.lower().rstrip(".")
     if sep and first_clean in KNOWN_UNITS:
-        return amount, first, remainder.strip()
+        return amount, normalize_unit(first), remainder.strip()
     return amount, "", rest
 
 
 def normalize_ingredient_name(value: str) -> str:
     text = str(value or "").strip().lower()
     text = text.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
-    text = re.sub(r"\s+", " ", text)
-    return text
+    text = re.sub(r"\([^)]*\)", " ", text)
+    text = re.sub(r"\b(frisch|frische|frischen|gehackt|gehackte|gewuerfelt|gewürfelt|klein|gross|groß|mittel|optional|nach geschmack)\b", " ", text)
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    words = []
+    for word in text.split():
+        if len(word) > 5 and word.endswith("chen"):
+            pass
+        elif len(word) > 4 and word.endswith("en"):
+            word = word[:-2]
+        elif len(word) > 4 and word.endswith("e"):
+            word = word[:-1]
+        elif len(word) > 4 and word.endswith("s"):
+            word = word[:-1]
+        words.append(word)
+    return " ".join(words).strip()
 
 
 def display_ingredient_name(value: str) -> str:
@@ -1120,11 +1218,22 @@ def get_einkaufsliste(request: Request) -> Dict[str, Any]:
         item = dict(row)
         typ = (item.get("typ") or "").strip().lower()
         recipe_title = (item.get("rezept_titel") or item.get("titel") or "").strip()
-        name = (item.get("name") or item.get("text") or "").strip()
         unit = (item.get("einheit") or "").strip()
         amount = (item.get("menge") or "").strip()
         amount, unit = split_amount_and_unit(amount, unit)
         is_manual = typ == "manual" or typ == "manuell" or recipe_title.lower() == "manuell"
+
+        if recipe_title and typ in {"rezept_marker", "recipe_marker"}:
+            recipe_entry = recipes_by_title.setdefault(
+                recipe_title,
+                {"titel": recipe_title, "title": recipe_title, "id": item.get("rezept_id"), "anzahl": 1},
+            )
+            if item.get("rezept_id") and not recipe_entry.get("id"):
+                recipe_entry["id"] = item.get("rezept_id")
+            recipe_entry["anzahl"] = max(safe_int(recipe_entry.get("anzahl"), 1), safe_int(amount, 1))
+            continue
+
+        name = (item.get("name") or "").strip()
 
         item_for_aggregation = {
             "id": item.get("id"),
@@ -1153,7 +1262,12 @@ def get_einkaufsliste(request: Request) -> Dict[str, Any]:
             continue
 
         if recipe_title:
-            recipes_by_title[recipe_title] = {"titel": recipe_title, "title": recipe_title, "id": item.get("rezept_id")}
+            recipe_entry = recipes_by_title.setdefault(
+                recipe_title,
+                {"titel": recipe_title, "title": recipe_title, "id": item.get("rezept_id"), "anzahl": 1},
+            )
+            if item.get("rezept_id") and not recipe_entry.get("id"):
+                recipe_entry["id"] = item.get("rezept_id")
         if not name:
             continue
         recipe_items.append(item_for_aggregation)
@@ -1291,7 +1405,7 @@ def delete_manual_item(item_id: int, request: Request) -> Dict[str, Any]:
     return {"success": True, "ok": True}
 
 
-def insert_recipe_into_shopping_list(conn: sqlite3.Connection, owner_name: str, rezept_id: int) -> Dict[str, Any]:
+def insert_recipe_into_shopping_list(conn: sqlite3.Connection, owner_name: str, rezept_id: int, multiplier: int = 1) -> Dict[str, Any]:
     rezept = conn.execute("SELECT id, titel, zutaten, owner_name, is_public FROM rezepte WHERE id = ?", (rezept_id,)).fetchone()
     if rezept is None:
         raise HTTPException(status_code=404, detail="Rezept nicht gefunden")
@@ -1299,10 +1413,20 @@ def insert_recipe_into_shopping_list(conn: sqlite3.Connection, owner_name: str, 
         raise HTTPException(status_code=403, detail="Nur eigene oder öffentliche Rezepte können hinzugefügt werden")
 
     title = rezept["titel"]
+    recipe_multiplier = max(1, safe_int(multiplier, 1))
     conn.execute(
         "DELETE FROM einkaufsliste WHERE owner_name = ? AND (rezept_titel = ? OR titel = ? OR rezept_id = ?)",
         (owner_name, title, title, rezept_id),
     )
+
+    if recipe_multiplier > 1:
+        conn.execute(
+            """
+            INSERT INTO einkaufsliste (rezept_titel, menge, einheit, name, owner_name, typ, rezept_id, titel, text, created_at)
+            VALUES (?, ?, '', '', ?, 'rezept_marker', ?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            (title, str(recipe_multiplier), owner_name, rezept_id, title, f"{recipe_multiplier} x {title}"),
+        )
 
     inserted = 0
     for raw_line in ingredients_to_storage(rezept["zutaten"]).splitlines():
@@ -1311,15 +1435,17 @@ def insert_recipe_into_shopping_list(conn: sqlite3.Connection, owner_name: str, 
             continue
         amount, unit, name = parse_ingredient_line(raw_line)
         if name:
+            scaled_amount = scale_amount_text(amount, recipe_multiplier)
+            display_text = " ".join(part for part in [scaled_amount, unit, name] if part).strip()
             conn.execute(
                 """
                 INSERT INTO einkaufsliste (rezept_titel, menge, einheit, name, owner_name, typ, rezept_id, titel, text, created_at)
                 VALUES (?, ?, ?, ?, ?, 'rezept', ?, ?, ?, CURRENT_TIMESTAMP)
                 """,
-                (title, amount, unit, name, owner_name, rezept_id, title, name),
+                (title, scaled_amount, unit, name, owner_name, rezept_id, title, display_text),
             )
             inserted += 1
-    return {"titel": title, "rezept_id": rezept_id, "zutaten": inserted}
+    return {"titel": title, "rezept_id": rezept_id, "zutaten": inserted, "anzahl": recipe_multiplier}
 
 
 @app.post("/api/einkaufsliste/{rezept_id}")
@@ -1463,14 +1589,20 @@ def add_wochenplan_to_einkaufsliste(request: Request) -> Dict[str, Any]:
     owner_name = get_current_user(request, required=True)
     conn = get_db_connection()
     rows = conn.execute(
-        "SELECT DISTINCT rezept_id FROM wochenplan WHERE owner_name = ? AND rezept_id IS NOT NULL",
+        """
+        SELECT rezept_id, COUNT(*) AS anzahl
+        FROM wochenplan
+        WHERE owner_name = ? AND rezept_id IS NOT NULL
+        GROUP BY rezept_id
+        """,
         (owner_name,),
     ).fetchall()
     added = []
     for row in rows:
         rezept_id = safe_int(row["rezept_id"], 0)
+        count = max(1, safe_int(row["anzahl"], 1))
         if rezept_id:
-            added.append(insert_recipe_into_shopping_list(conn, owner_name, rezept_id))
+            added.append(insert_recipe_into_shopping_list(conn, owner_name, rezept_id, multiplier=count))
     conn.commit()
     conn.close()
     return {"success": True, "ok": True, "rezepte": added, "count": len(added)}
@@ -1582,11 +1714,7 @@ def image_from_chefkoch_snippet(snippet: str) -> str:
     return ""
 
 
-<<<<<<< Updated upstream
-CHEFKOCH_META_CACHE: Dict[str, Dict[str, str]] = {}
-=======
 CHEFKOCH_META_CACHE: Dict[str, Dict[str, Any]] = {}
->>>>>>> Stashed changes
 
 
 def normalize_image_url(value: str) -> str:
@@ -1616,15 +1744,6 @@ def normalize_recipe_description(value: Any) -> str:
     text = re.sub(r"^Chefkoch\s*[-–:]\s*", "", text, flags=re.IGNORECASE).strip()
     text = re.sub(r"\s*\|\s*Chefkoch(?:\.de)?\s*$", "", text, flags=re.IGNORECASE).strip()
     text = re.sub(r"\s*-\s*Wir haben\s+\d+\s+.*$", "", text, flags=re.IGNORECASE).strip()
-<<<<<<< Updated upstream
-    if len(text) < 20:
-        return ""
-    if len(text) > 260:
-        text = text[:257].rsplit(" ", 1)[0].rstrip(" .,;:-") + "..."
-    return text
-
-
-=======
     text = re.sub(r"\bÜber\s+[0-9.]+\s+Bewertungen?[^.?!]*(?:[.?!]|$)", " ", text, flags=re.IGNORECASE).strip()
     text = re.sub(r"\b[0-9]+(?:,[0-9]+)?\s*Sterne[^.?!]*(?:[.?!]|$)", " ", text, flags=re.IGNORECASE).strip()
     text = re.sub(r"\s+", " ", text).strip(" -–—:;,.\t\n\r")
@@ -2025,7 +2144,6 @@ def best_json_ld_description(value: Any) -> str:
     return fallback
 
 
->>>>>>> Stashed changes
 def image_from_json_ld(value: Any) -> str:
     if isinstance(value, list):
         for item in value:
@@ -2068,19 +2186,11 @@ def description_from_json_ld(value: Any) -> str:
     return ""
 
 
-<<<<<<< Updated upstream
-def chefkoch_recipe_meta(recipe_url: str) -> Dict[str, str]:
-    if recipe_url in CHEFKOCH_META_CACHE:
-        return CHEFKOCH_META_CACHE[recipe_url]
-
-    meta = {"image": "", "description": ""}
-=======
 def chefkoch_recipe_meta(recipe_url: str) -> Dict[str, Any]:
     if recipe_url in CHEFKOCH_META_CACHE:
         return CHEFKOCH_META_CACHE[recipe_url]
 
     meta: Dict[str, Any] = {"image": "", "description": "", "tags": [], "rating_value": "", "rating_count": "", "ingredients_preview": [], "instruction_preview": ""}
->>>>>>> Stashed changes
     try:
         response = requests.get(
             recipe_url,
@@ -2109,11 +2219,7 @@ def chefkoch_recipe_meta(recipe_url: str) -> Dict[str, Any]:
         ):
             match = re.search(pattern, page, flags=re.IGNORECASE)
             if match:
-<<<<<<< Updated upstream
-                meta["description"] = normalize_recipe_description(match.group(1))
-=======
                 meta["description"] = clean_discovery_description_text(match.group(1), title_from_chefkoch_url(recipe_url))
->>>>>>> Stashed changes
                 if meta["description"]:
                     break
 
@@ -2124,13 +2230,6 @@ def chefkoch_recipe_meta(recipe_url: str) -> Dict[str, Any]:
                 continue
             if not meta["image"]:
                 meta["image"] = image_from_json_ld(data)
-<<<<<<< Updated upstream
-            if not meta["description"]:
-                meta["description"] = description_from_json_ld(data)
-            if meta["image"] and meta["description"]:
-                break
-
-=======
             json_description = clean_discovery_description_text(best_json_ld_description(data), title_from_chefkoch_url(recipe_url))
             json_ingredients = recipe_ingredients_from_json_ld(data)
             json_instruction = first_instruction_preview_from_json_ld(data)
@@ -2160,7 +2259,6 @@ def chefkoch_recipe_meta(recipe_url: str) -> Dict[str, Any]:
             meta["rating_value"] = rating.get("rating_value", "")
             meta["rating_count"] = rating.get("rating_count", "")
 
->>>>>>> Stashed changes
         if not meta["image"]:
             match = re.search(r'https?://img\.chefkoch-cdn\.de/[^"\'<>\s]+\.(?:jpg|jpeg|png|webp)(?:\?[^"\'<>\s]*)?', page, flags=re.IGNORECASE)
             if match:
@@ -2169,12 +2267,6 @@ def chefkoch_recipe_meta(recipe_url: str) -> Dict[str, Any]:
         if not meta["description"]:
             teaser_match = re.search(r'<p[^>]+class=["\'][^"\']*(?:teaser|summary|description)[^"\']*["\'][^>]*>(.*?)</p>', page, flags=re.IGNORECASE | re.DOTALL)
             if teaser_match:
-<<<<<<< Updated upstream
-                meta["description"] = normalize_recipe_description(teaser_match.group(1))
-    except Exception:
-        pass
-
-=======
                 meta["description"] = clean_discovery_description_text(teaser_match.group(1), title_from_chefkoch_url(recipe_url))
     except Exception:
         pass
@@ -2191,7 +2283,6 @@ def chefkoch_recipe_meta(recipe_url: str) -> Dict[str, Any]:
     if not meta.get("tags"):
         meta["tags"] = ["Rezept"]
 
->>>>>>> Stashed changes
     CHEFKOCH_META_CACHE[recipe_url] = meta
     return meta
 
@@ -2253,16 +2344,12 @@ def chefkoch_discovery_search(search: str, limit: int = 6) -> List[Dict[str, Any
         title = re.sub(r"\s+", " ", re.sub(r"^(Rezept|Bild von)\s*:?\s*", "", title, flags=re.IGNORECASE)).strip() or title_from_chefkoch_url(recipe_url)
         meta = chefkoch_recipe_meta(recipe_url)
         image = image_from_chefkoch_snippet(snippet) or meta.get("image", "")
-<<<<<<< Updated upstream
-        description = meta.get("description", "") or f"Chefkoch-Rezept: {title}. Beim Importieren wird es zuerst als bearbeitbarer Entwurf geladen."
-=======
         description = build_discovery_description(
             title,
             str(meta.get("description", "") or "").strip(),
             list(meta.get("ingredients_preview") or []),
             str(meta.get("instruction_preview") or ""),
         )
->>>>>>> Stashed changes
         minutes = ""
         minute_match = re.search(r"(\d{1,3})\s*Min\.", html_lib.unescape(snippet), flags=re.IGNORECASE)
         if minute_match:
@@ -2285,11 +2372,8 @@ def chefkoch_discovery_search(search: str, limit: int = 6) -> List[Dict[str, Any
             "strArea": tags[1] if len(tags) > 1 else "",
             "tags": tags,
             "dauer": minutes,
-<<<<<<< Updated upstream
-=======
             "rating_value": meta.get("rating_value", ""),
             "rating_count": meta.get("rating_count", ""),
->>>>>>> Stashed changes
             "description": description,
             "summary": description,
             "strInstructions": description,
@@ -2301,7 +2385,8 @@ def chefkoch_discovery_search(search: str, limit: int = 6) -> List[Dict[str, Any
 
 
 @app.get("/api/entdecken")
-def entdecken(query: str = "") -> Dict[str, Any]:
+def entdecken(request: Request, query: str = "") -> Dict[str, Any]:
+    get_current_user(request, required=True)
     search = query.strip()
     if not search:
         return {"success": True, "ok": True, "source": "chefkoch", "meals": []}
@@ -2328,7 +2413,8 @@ async def import_entdecken(request: Request) -> Dict[str, Any]:
         return {"success": False, "ok": False, "error": result.get("fehler") or result.get("error") or "Import fehlgeschlagen"}
 
     recipe = imported_recipe_from_result(result)
-    recipe["image_url"] = recipe.get("image_url") or chefkoch_recipe_image(url)
+    # Chefkoch-Bilder werden in der Entdecken-Suche angezeigt, aber aus rechtlichen Gründen nicht in eigene Rezepte übernommen.
+    recipe["image_url"] = ""
     recipe["source"] = "chefkoch"
     recipe["is_public"] = 0
     return {"success": True, "ok": True, "draft": recipe, **recipe}

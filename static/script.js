@@ -38,6 +38,12 @@ function getCurrentUsername() {
   return user?.username || user?.name || "";
 }
 
+function isRootUser() {
+  const user = getCurrentUser();
+  const username = getCurrentUsername().toLowerCase();
+  return user?.is_root === true || username === "root";
+}
+
 function getAuthToken() {
   return localStorage.getItem("kochflow_token") || "";
 }
@@ -46,7 +52,10 @@ function setAuth(userOrUsername, token) {
   const username = typeof userOrUsername === "string"
     ? userOrUsername
     : (userOrUsername?.username || userOrUsername?.name || "");
-  localStorage.setItem("kochflow_user", username);
+  const isRoot = typeof userOrUsername === "object" && userOrUsername
+    ? Boolean(userOrUsername.is_root || userOrUsername.root)
+    : username.toLowerCase() === "root";
+  localStorage.setItem("kochflow_user", JSON.stringify({ username, is_root: isRoot }));
   localStorage.setItem("kochflow_token", token || "");
   localStorage.removeItem("kochapp_user");
 }
@@ -523,6 +532,42 @@ function renderRecipeCollection(container, recipes, options) {
   container.innerHTML = recipes.map((recipe) => renderRecipeCard(recipe, options)).join("") || '<div class="empty-note">Keine passenden Rezepte gefunden.</div>';
 }
 
+function ensureRootRecipeAdminControls() {
+  if (!isRootUser()) return;
+  const container = document.getElementById("recipe-list-container");
+  if (!container || document.getElementById("root-admin-recipe-controls")) return;
+
+  const wrapper = document.createElement("div");
+  wrapper.id = "root-admin-recipe-controls";
+  wrapper.className = "root-admin-controls";
+  wrapper.innerHTML = `
+    <div>
+      <strong>Root-Verwaltung</strong>
+      <span>Du siehst als Root alle Rezepte. Einzelne Rezepte können über die Detailseite verwaltet werden.</span>
+    </div>
+    <button type="button" class="danger-action" onclick="rootDeleteAllRecipes()">Alle Rezepte löschen</button>
+  `;
+
+  const directParent = container.parentElement;
+  if (directParent) {
+    directParent.insertBefore(wrapper, container);
+  }
+}
+
+async function rootDeleteAllRecipes() {
+  if (!isRootUser()) return;
+  const phrase = prompt('Zum Löschen aller Rezepte bitte exakt "ALLE LÖSCHEN" eingeben.');
+  if (phrase !== "ALLE LÖSCHEN") return;
+  try {
+    const result = await apiFetch("/api/admin/rezepte", { method: "DELETE" });
+    showToast(`${result?.deleted || 0} Rezepte wurden gelöscht.`);
+    await loadRezepte();
+    await loadPublicRezepte();
+  } catch (error) {
+    showToast(extractErrorMessage(error), "error");
+  }
+}
+
 function updateCachedFavoriteState(recipeId, favorited) {
   [cachedPublicRecipes, cachedOwnRecipes].forEach((list) => {
     list.forEach((recipe) => {
@@ -576,9 +621,15 @@ function filterRecipes(recipes) {
 
   return recipes.filter((rawRecipe) => {
     const recipe = normalizeRecipe(rawRecipe);
-    const titleMatches = getRecipeTitle(recipe).toLowerCase().includes(search);
+    const searchableText = [
+      getRecipeTitle(recipe),
+      recipe.kategorie.join(" "),
+      recipe.zutaten.map((item) => renderIngredientText(item)).join(" "),
+      recipe.anleitung.map((step) => normalizeStepForDisplay(step).text).join(" ")
+    ].join(" ").toLowerCase();
+    const textMatches = !search || searchableText.includes(search);
     const categoryMatches = !category || recipe.kategorie.some((item) => item.toLowerCase().includes(category));
-    return titleMatches && categoryMatches;
+    return textMatches && categoryMatches;
   });
 }
 
@@ -627,8 +678,10 @@ async function loadRezepte() {
   if (!requireAuth()) return;
 
   try {
-    cachedOwnRecipes = recipeArray(await apiFetch("/api/rezepte?scope=mine"));
+    const scope = isRootUser() ? "all" : "mine";
+    cachedOwnRecipes = recipeArray(await apiFetch(`/api/rezepte?scope=${scope}`));
     populateCategorySelect(cachedOwnRecipes);
+    ensureRootRecipeAdminControls();
     renderRecipeCollection(container, filterRecipes(cachedOwnRecipes), { showEdit: true, showDelete: true });
   } catch (error) {
     container.innerHTML = `<div class="empty-note">${escapeHTML(extractErrorMessage(error))}</div>`;
@@ -641,6 +694,7 @@ async function loadPublicRezepte() {
 
   try {
     cachedPublicRecipes = recipeArray(await apiFetch("/api/rezepte/public"));
+    populateCategorySelect(cachedPublicRecipes);
     renderRecipeCollection(container, filterRecipes(cachedPublicRecipes), { showFavorite: true });
   } catch (error) {
     container.innerHTML = `<div class="empty-note">${escapeHTML(extractErrorMessage(error))}</div>`;
@@ -726,16 +780,24 @@ function explicitStepIngredients(step) {
   return String(raw).split(/[;,\n]+/).map((item) => item.trim()).filter(Boolean);
 }
 
+function currentPortionFactor() {
+  const input = document.getElementById("portionen-input") || document.getElementById("portionen-rechner");
+  const original = Number(input?.dataset?.original || currentDetailRecipe?.portionen || 1) || 1;
+  const requested = Number(input?.value || original) || original;
+  return requested > 0 && original > 0 ? requested / original : 1;
+}
+
 function inferStepIngredients(step, stepText) {
   const explicit = explicitStepIngredients(step);
   if (explicit.length) return explicit;
 
+  const factor = currentPortionFactor();
   const ingredients = currentDetailRecipe?.zutaten || [];
   const found = [];
   const seen = new Set();
   ingredients.forEach((ingredient) => {
     if (!ingredientMentionedInStep(ingredient, stepText)) return;
-    const label = renderIngredientText(ingredient).trim() || getIngredientName(ingredient);
+    const label = renderIngredientText(ingredient, factor).trim() || getIngredientName(ingredient);
     const key = normalizeIngredientForMatch(label);
     if (!label || seen.has(key)) return;
     seen.add(key);
@@ -838,7 +900,8 @@ async function loadRezeptDetail() {
     currentDetailRecipe = recipe;
 
     const currentUsername = getCurrentUsername();
-    const isOwner = currentUsername && recipe.owner_name === currentUsername;
+    const isOwner = Boolean(currentUsername && recipe.owner_name === currentUsername);
+    const canManage = isOwner || isRootUser();
     const source = recipe.source || "manual";
     const external = isExternallyImported(source);
 
@@ -874,8 +937,8 @@ async function loadRezeptDetail() {
 
     const ownerControls = document.getElementById("owner-controls");
     if (ownerControls) {
-      ownerControls.hidden = !isOwner;
-      ownerControls.style.display = isOwner ? "flex" : "none";
+      ownerControls.hidden = !canManage;
+      ownerControls.style.display = canManage ? "flex" : "none";
     }
 
     const editLink = document.getElementById("edit-rezept-link");
@@ -888,7 +951,7 @@ async function loadRezeptDetail() {
       visibilityButton.title = external ? "Importierte Rezepte bleiben privat." : "";
     }
 
-    ensureDetailRecipeActions(recipe, isOwner, external);
+    ensureDetailRecipeActions(recipe, canManage, external);
     maybeStartDetailCookMode();
   } catch (error) {
     title.textContent = "Rezept konnte nicht geladen werden";
@@ -1119,7 +1182,7 @@ function renderDetailRecipeImage(recipe) {
   panel.prepend(image);
 }
 
-function ensureDetailRecipeActions(recipe, isOwner, external) {
+function ensureDetailRecipeActions(recipe, canManage, external) {
   const recipeId = Number(recipe?.id || getQueryParam("id") || 0);
   const header = document.getElementById("detail-titel")?.closest(".page-header, .recipe-detail-header, header")
     || document.getElementById("standard-ansicht")
@@ -1134,7 +1197,7 @@ function ensureDetailRecipeActions(recipe, isOwner, external) {
     header.appendChild(actionBar);
   }
 
-  const favoriteAction = (!isOwner && recipe?.is_public && getAuthToken()) ? `
+  const favoriteAction = (!canManage && recipe?.is_public && getAuthToken()) ? `
     <button type="button" id="detail-favorite-button" class="secondary favorite-detail-button ${recipe.favorited ? "is-favorited" : ""}" onclick="toggleFavorite(event, ${recipeId}, ${recipe.favorited ? "false" : "true"})" aria-pressed="${recipe.favorited ? "true" : "false"}">
       ${iconSVG("star")}<span>${recipe.favorited ? "Favorit entfernen" : "Für Wochenplan merken"}</span>
     </button>` : "";
@@ -1156,7 +1219,7 @@ function ensureDetailRecipeActions(recipe, isOwner, external) {
   }
 
   if (management) {
-    if (isOwner) {
+    if (canManage) {
       const visibilityLabel = recipe?.is_public ? "Privat machen" : "Öffentlich machen";
       management.hidden = false;
       management.innerHTML = `
@@ -1280,9 +1343,11 @@ async function loadEinkaufsliste() {
         const removeArg = recipe.id
           ? String(Number(recipe.id))
           : JSON.stringify(String(title)).replaceAll('"', "&quot;");
+        const amount = Number(recipe.anzahl || recipe.count || 1);
+        const amountLabel = Number.isFinite(amount) && amount > 1 ? ` <small class="shopping-recipe-count">×${amount}</small>` : "";
         return `
           <li class="shopping-recipe-item">
-            <span>${escapeHTML(title)}</span>
+            <span>${escapeHTML(title)}${amountLabel}</span>
             ${renderTrashButton(`removeRezeptFromEinkaufsliste(${removeArg})`, "Rezept aus Einkaufsliste entfernen")}
           </li>
         `;
@@ -1393,12 +1458,14 @@ function initManualShoppingForm() {
     if (!requireAuth()) return;
 
     const amountInput = document.getElementById("manuell-menge-input");
+    const unitInput = document.getElementById("manuell-einheit-input");
     const nameInput = document.getElementById("manuell-name-input");
     const legacyInput = document.getElementById("manuell-input");
 
     const menge = (amountInput?.value || "").trim();
+    const einheit = (unitInput?.value || "").trim();
     const name = (nameInput?.value || legacyInput?.value || "").trim();
-    const text = [menge, name].filter(Boolean).join(" ").trim();
+    const text = [menge, einheit, name].filter(Boolean).join(" ").trim();
     if (!name) {
       showToast("Bitte eine Zutat angeben.", "error");
       nameInput?.focus();
@@ -1410,9 +1477,10 @@ function initManualShoppingForm() {
       await apiFetch("/api/einkaufsliste/manuell", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ menge, name, text })
+        body: JSON.stringify({ menge, einheit, name, text })
       });
       if (amountInput) amountInput.value = "";
+      if (unitInput) unitInput.value = "";
       if (nameInput) nameInput.value = "";
       if (legacyInput) legacyInput.value = "";
       await loadEinkaufsliste();
@@ -1709,7 +1777,8 @@ function initImportForms() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url, preview: true })
         });
-        setImportDraft(recipe.draft || recipe, "chefkoch");
+        const draft = { ...(recipe.draft || recipe), image_url: "", bild_url: "" };
+    setImportDraft(draft, "chefkoch");
         showMessage(message, "Rezept wurde geladen. Prüfe es vor dem Speichern.", "success");
         window.location.href = "neues_rezept.html?import=chefkoch";
       } catch (error) {
@@ -1751,6 +1820,7 @@ async function loadEntdecken() {
   const form = document.getElementById("form-entdecken") || input?.closest("form");
   const results = document.getElementById("entdecken-results") || document.getElementById("entdecken-container");
   if (!form || !results || !input) return;
+  if (!requireAuth()) return;
 
   const params = new URLSearchParams(window.location.search);
   if (!input.getAttribute("placeholder")) input.setAttribute("placeholder", "z. B. Lasagne, Curry, Kartoffelsalat");
@@ -1811,7 +1881,8 @@ async function apiRezeptImportieren(recipeUrl, button) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: recipeUrl, preview: true })
     });
-    setImportDraft(recipe.draft || recipe, "chefkoch");
+    const draft = { ...(recipe.draft || recipe), image_url: "", bild_url: "" };
+    setImportDraft(draft, "chefkoch");
     window.location.href = "neues_rezept.html?import=chefkoch";
   } catch (error) {
     alert(extractErrorMessage(error));
@@ -2084,7 +2155,7 @@ function initAuthForms() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password })
         });
-        setAuth(data.username || data.user, data.token);
+        setAuth(data.user || { username: data.username, is_root: data.is_root }, data.token);
         window.location.href = safeRedirectTarget(getQueryParam("next"));
       } catch (error) {
         showMessage(message, extractErrorMessage(error), "error");
@@ -2111,7 +2182,7 @@ function initAuthForms() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password })
         });
-        setAuth(data.username || data.user, data.token);
+        setAuth(data.user || { username: data.username, is_root: data.is_root }, data.token);
         window.location.href = safeRedirectTarget(getQueryParam("next"));
       } catch (error) {
         showMessage(message, extractErrorMessage(error), "error");

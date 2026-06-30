@@ -1,49 +1,64 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Öffentliche Rezepte · KochFlow</title>
   <link rel="manifest" href="./manifest.json">
-  <link rel="icon" type="image/x-icon" href="./static/favicon.ico">
-  <link rel="apple-touch-icon" href="./static/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="./static/icon-192.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <link rel="stylesheet" href="./static/app.css">
-  <title>Öffentliche Rezepte · KochFlow</title>
 </head>
 <body>
   <main class="container">
-<header class="app-nav">
-  <a class="brand" href="./index.html" aria-label="Zur Startseite">
-    <span class="brand-mark">KF</span>
-    <span>KochFlow</span>
-  </a>
-  <div class="nav-links">
+    <nav class="app-nav" aria-label="Hauptnavigation">
+      <a class="brand" href="./index.html" aria-label="KochFlow Startseite">
+        <span class="brand-mark">KF</span>
+        <strong>KochFlow</strong>
+      </a>
+      <div class="nav-links">
         <a href="./index.html" data-icon="⌂">Start</a>
         <a href="./rezepte.html" data-icon="▤">Rezepte</a>
         <a href="./neues_rezept.html" data-icon="+">Neu</a>
-        <a href="./community.html" class="active"data-icon="○">Öffentlich</a>
-        <a href="./einkaufsliste.html"  data-icon="✓">Einkauf</a>
+        <a href="./community.html" class="active" data-icon="○">Öffentlich</a>
+        <a href="./einkaufsliste.html" data-icon="✓">Einkauf</a>
         <a href="./wochenplan.html" data-icon="□">Plan</a>
         <a href="./import.html" data-icon="↧">Import</a>
         <a href="./entdecken.html" data-icon="⌕">Entdecken</a>
-  </div>
-</header>
-<div id="current-user" class="user-bar"></div>
+      </div>
+    </nav>
 
-<section class="page-header">
-  <div><span class="pill badge-public">Community</span><h1>Öffentliche Rezepte</h1><p>Rezepte, die andere Nutzer freigegeben haben. Du kannst sie öffnen, kochen und zur Einkaufsliste hinzufügen.</p></div>
-  <a href="./neues_rezept.html" role="button">Eigenes Rezept teilen</a>
-</section>
-<section id="public-recipe-list-container" class="recipe-list"><p class="empty-note">Lade öffentliche Rezepte...</p></section>
+    <div class="user-bar">
+      <span id="current-user"></span>
+    </div>
 
+    <header class="page-header page-header-row">
+      <div>
+        <p class="pill">Community</p>
+        <h1>Öffentliche Rezepte</h1>
+        <p>Rezepte, die andere Nutzer freigegeben haben. Du kannst sie öffnen, kochen, merken und zur Einkaufsliste hinzufügen.</p>
+      </div>
+      <a href="./neues_rezept.html" role="button" class="primary-action">Eigenes Rezept teilen</a>
+    </header>
+
+    <form class="filter-panel panel" id="public-recipe-filter-form">
+      <div class="filter-grid">
+        <input id="search" name="suche" type="search" placeholder="Rezept, Zutat oder Kategorie suchen" autocomplete="off">
+        <select id="kategorie-select" name="kategorie">
+          <option value="">Alle Kategorien</option>
+        </select>
+      </div>
+      <div class="filter-actions">
+        <button type="submit" class="primary-action">Suchen</button>
+        <button type="reset" class="secondary" onclick="setTimeout(() => { document.getElementById('search').value=''; document.getElementById('kategorie-select').value=''; document.getElementById('search').dispatchEvent(new Event('input')); }, 0)">Zurücksetzen</button>
+      </div>
+    </form>
+
+    <section id="public-recipe-list-container" class="recipe-list" aria-live="polite">
+      <div class="empty-note">Lade öffentliche Rezepte...</div>
+    </section>
   </main>
+
   <script src="./static/script.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
-    }
-  </script>
 </body>
 </html>

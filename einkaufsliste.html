@@ -47,8 +47,9 @@
 
         <form id="form-einkauf-manuell" class="manual-shopping-form">
           <h2>Manuell</h2>
-          <div class="manual-shopping-grid">
-            <input id="manuell-menge-input" name="menge" type="text" autocomplete="off" placeholder="Menge, z. B. 500 g">
+          <div class="manual-shopping-grid manual-shopping-grid-three">
+            <input id="manuell-menge-input" name="menge" type="text" autocomplete="off" inputmode="decimal" placeholder="Menge, z. B. 500">
+            <input id="manuell-einheit-input" name="einheit" type="text" autocomplete="off" placeholder="Einheit, z. B. g">
             <input id="manuell-name-input" name="name" type="text" autocomplete="off" placeholder="Item, z. B. Tomaten" required>
           </div>
           <button type="submit" class="primary-action">Hinzufügen</button>
