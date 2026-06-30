@@ -1056,8 +1056,11 @@ def format_amount_number(value: float) -> str:
 
 def scale_amount_text(amount: Any, multiplier: int = 1) -> str:
     text = str(amount or "").strip()
-    if multiplier <= 1 or not text:
+    multiplier = max(1, safe_int(multiplier, 1))
+    if multiplier <= 1:
         return text
+    if not text:
+        return str(multiplier)
     number = parse_amount_number(text)
     if number is not None:
         return format_amount_number(number * multiplier)
@@ -1244,7 +1247,14 @@ def get_einkaufsliste(request: Request) -> Dict[str, Any]:
             continue
 
         if recipe_title:
-            recipes_by_title[recipe_title] = {"titel": recipe_title, "title": recipe_title, "id": item.get("rezept_id")}
+            recipe_entry = recipes_by_title.setdefault(
+                recipe_title,
+                {"titel": recipe_title, "title": recipe_title, "id": item.get("rezept_id"), "anzahl": 1},
+            )
+            if item.get("rezept_id") and not recipe_entry.get("id"):
+                recipe_entry["id"] = item.get("rezept_id")
+            if typ in {"rezept_marker", "recipe_marker"}:
+                recipe_entry["anzahl"] = max(safe_int(recipe_entry.get("anzahl"), 1), safe_int(amount, 1))
         if not name:
             continue
         recipe_items.append(item_for_aggregation)
@@ -1390,10 +1400,20 @@ def insert_recipe_into_shopping_list(conn: sqlite3.Connection, owner_name: str, 
         raise HTTPException(status_code=403, detail="Nur eigene oder öffentliche Rezepte können hinzugefügt werden")
 
     title = rezept["titel"]
+    recipe_multiplier = max(1, safe_int(multiplier, 1))
     conn.execute(
         "DELETE FROM einkaufsliste WHERE owner_name = ? AND (rezept_titel = ? OR titel = ? OR rezept_id = ?)",
         (owner_name, title, title, rezept_id),
     )
+
+    if recipe_multiplier > 1:
+        conn.execute(
+            """
+            INSERT INTO einkaufsliste (rezept_titel, menge, einheit, name, owner_name, typ, rezept_id, titel, text, created_at)
+            VALUES (?, ?, '', '', ?, 'rezept_marker', ?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            (title, str(recipe_multiplier), owner_name, rezept_id, title, f"{recipe_multiplier} x {title}"),
+        )
 
     inserted = 0
     for raw_line in ingredients_to_storage(rezept["zutaten"]).splitlines():
@@ -1402,7 +1422,7 @@ def insert_recipe_into_shopping_list(conn: sqlite3.Connection, owner_name: str, 
             continue
         amount, unit, name = parse_ingredient_line(raw_line)
         if name:
-            scaled_amount = scale_amount_text(amount, max(1, int(multiplier or 1)))
+            scaled_amount = scale_amount_text(amount, recipe_multiplier)
             display_text = " ".join(part for part in [scaled_amount, unit, name] if part).strip()
             conn.execute(
                 """
@@ -1412,7 +1432,7 @@ def insert_recipe_into_shopping_list(conn: sqlite3.Connection, owner_name: str, 
                 (title, scaled_amount, unit, name, owner_name, rezept_id, title, display_text),
             )
             inserted += 1
-    return {"titel": title, "rezept_id": rezept_id, "zutaten": inserted, "anzahl": max(1, int(multiplier or 1))}
+    return {"titel": title, "rezept_id": rezept_id, "zutaten": inserted, "anzahl": recipe_multiplier}
 
 
 @app.post("/api/einkaufsliste/{rezept_id}")

@@ -1338,9 +1338,11 @@ async function loadEinkaufsliste() {
         const removeArg = recipe.id
           ? String(Number(recipe.id))
           : JSON.stringify(String(title)).replaceAll('"', "&quot;");
+        const amount = Number(recipe.anzahl || recipe.count || 1);
+        const amountLabel = Number.isFinite(amount) && amount > 1 ? ` <small class="shopping-recipe-count">×${amount}</small>` : "";
         return `
           <li class="shopping-recipe-item">
-            <span>${escapeHTML(title)}</span>
+            <span>${escapeHTML(title)}${amountLabel}</span>
             ${renderTrashButton(`removeRezeptFromEinkaufsliste(${removeArg})`, "Rezept aus Einkaufsliste entfernen")}
           </li>
         `;
