@@ -900,7 +900,8 @@ async function loadRezeptDetail() {
     currentDetailRecipe = recipe;
 
     const currentUsername = getCurrentUsername();
-    const isOwner = currentUsername && recipe.owner_name === currentUsername;
+    const isOwner = Boolean(currentUsername && recipe.owner_name === currentUsername);
+    const canManage = isOwner || isRootUser();
     const source = recipe.source || "manual";
     const external = isExternallyImported(source);
 
@@ -936,8 +937,8 @@ async function loadRezeptDetail() {
 
     const ownerControls = document.getElementById("owner-controls");
     if (ownerControls) {
-      ownerControls.hidden = !isOwner;
-      ownerControls.style.display = isOwner ? "flex" : "none";
+      ownerControls.hidden = !canManage;
+      ownerControls.style.display = canManage ? "flex" : "none";
     }
 
     const editLink = document.getElementById("edit-rezept-link");
@@ -950,7 +951,7 @@ async function loadRezeptDetail() {
       visibilityButton.title = external ? "Importierte Rezepte bleiben privat." : "";
     }
 
-    ensureDetailRecipeActions(recipe, isOwner, external);
+    ensureDetailRecipeActions(recipe, canManage, external);
     maybeStartDetailCookMode();
   } catch (error) {
     title.textContent = "Rezept konnte nicht geladen werden";
@@ -1181,7 +1182,7 @@ function renderDetailRecipeImage(recipe) {
   panel.prepend(image);
 }
 
-function ensureDetailRecipeActions(recipe, isOwner, external) {
+function ensureDetailRecipeActions(recipe, canManage, external) {
   const recipeId = Number(recipe?.id || getQueryParam("id") || 0);
   const header = document.getElementById("detail-titel")?.closest(".page-header, .recipe-detail-header, header")
     || document.getElementById("standard-ansicht")
@@ -1196,7 +1197,7 @@ function ensureDetailRecipeActions(recipe, isOwner, external) {
     header.appendChild(actionBar);
   }
 
-  const favoriteAction = (!isOwner && recipe?.is_public && getAuthToken()) ? `
+  const favoriteAction = (!canManage && recipe?.is_public && getAuthToken()) ? `
     <button type="button" id="detail-favorite-button" class="secondary favorite-detail-button ${recipe.favorited ? "is-favorited" : ""}" onclick="toggleFavorite(event, ${recipeId}, ${recipe.favorited ? "false" : "true"})" aria-pressed="${recipe.favorited ? "true" : "false"}">
       ${iconSVG("star")}<span>${recipe.favorited ? "Favorit entfernen" : "Für Wochenplan merken"}</span>
     </button>` : "";
@@ -1218,7 +1219,7 @@ function ensureDetailRecipeActions(recipe, isOwner, external) {
   }
 
   if (management) {
-    if (isOwner) {
+    if (canManage) {
       const visibilityLabel = recipe?.is_public ? "Privat machen" : "Öffentlich machen";
       management.hidden = false;
       management.innerHTML = `
