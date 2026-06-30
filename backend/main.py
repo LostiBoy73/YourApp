@@ -1214,11 +1214,22 @@ def get_einkaufsliste(request: Request) -> Dict[str, Any]:
         item = dict(row)
         typ = (item.get("typ") or "").strip().lower()
         recipe_title = (item.get("rezept_titel") or item.get("titel") or "").strip()
-        name = (item.get("name") or item.get("text") or "").strip()
         unit = (item.get("einheit") or "").strip()
         amount = (item.get("menge") or "").strip()
         amount, unit = split_amount_and_unit(amount, unit)
         is_manual = typ == "manual" or typ == "manuell" or recipe_title.lower() == "manuell"
+
+        if recipe_title and typ in {"rezept_marker", "recipe_marker"}:
+            recipe_entry = recipes_by_title.setdefault(
+                recipe_title,
+                {"titel": recipe_title, "title": recipe_title, "id": item.get("rezept_id"), "anzahl": 1},
+            )
+            if item.get("rezept_id") and not recipe_entry.get("id"):
+                recipe_entry["id"] = item.get("rezept_id")
+            recipe_entry["anzahl"] = max(safe_int(recipe_entry.get("anzahl"), 1), safe_int(amount, 1))
+            continue
+
+        name = (item.get("name") or "").strip()
 
         item_for_aggregation = {
             "id": item.get("id"),
@@ -1253,8 +1264,6 @@ def get_einkaufsliste(request: Request) -> Dict[str, Any]:
             )
             if item.get("rezept_id") and not recipe_entry.get("id"):
                 recipe_entry["id"] = item.get("rezept_id")
-            if typ in {"rezept_marker", "recipe_marker"}:
-                recipe_entry["anzahl"] = max(safe_int(recipe_entry.get("anzahl"), 1), safe_int(amount, 1))
         if not name:
             continue
         recipe_items.append(item_for_aggregation)
