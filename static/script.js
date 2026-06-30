@@ -535,20 +535,23 @@ function renderRecipeCollection(container, recipes, options) {
 function ensureRootRecipeAdminControls() {
   if (!isRootUser()) return;
   const container = document.getElementById("recipe-list-container");
-  if (!container) return;
-  const panel = container.closest("section, .panel, .form-panel, main") || document.querySelector("main");
-  if (!panel || document.getElementById("root-admin-recipe-controls")) return;
+  if (!container || document.getElementById("root-admin-recipe-controls")) return;
+
   const wrapper = document.createElement("div");
   wrapper.id = "root-admin-recipe-controls";
   wrapper.className = "root-admin-controls";
   wrapper.innerHTML = `
     <div>
       <strong>Root-Verwaltung</strong>
-      <span>Alle Rezepte inklusive Wochenplan, Favoriten und Einkaufsliste löschen.</span>
+      <span>Du siehst als Root alle Rezepte. Einzelne Rezepte können über die Detailseite verwaltet werden.</span>
     </div>
     <button type="button" class="danger-action" onclick="rootDeleteAllRecipes()">Alle Rezepte löschen</button>
   `;
-  panel.insertBefore(wrapper, container);
+
+  const directParent = container.parentElement;
+  if (directParent) {
+    directParent.insertBefore(wrapper, container);
+  }
 }
 
 async function rootDeleteAllRecipes() {
@@ -675,7 +678,8 @@ async function loadRezepte() {
   if (!requireAuth()) return;
 
   try {
-    cachedOwnRecipes = recipeArray(await apiFetch("/api/rezepte?scope=mine"));
+    const scope = isRootUser() ? "all" : "mine";
+    cachedOwnRecipes = recipeArray(await apiFetch(`/api/rezepte?scope=${scope}`));
     populateCategorySelect(cachedOwnRecipes);
     ensureRootRecipeAdminControls();
     renderRecipeCollection(container, filterRecipes(cachedOwnRecipes), { showEdit: true, showDelete: true });

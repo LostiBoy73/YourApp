@@ -374,6 +374,10 @@ def is_root_user(username: Optional[str]) -> bool:
     return bool(username and username.strip().lower() in root_usernames())
 
 
+def can_manage_recipe(username: Optional[str], recipe_owner: Optional[str]) -> bool:
+    return is_root_user(username) or bool(username and recipe_owner and str(recipe_owner) == str(username))
+
+
 def require_root_user(request: Request) -> str:
     username = get_current_user(request, required=True)
     if not is_root_user(username):
@@ -827,7 +831,7 @@ def get_rezept_detail(rezept_id: int, request: Request) -> Dict[str, Any]:
     rezept = row_to_dict(row)
     if rezept is None:
         raise HTTPException(status_code=404, detail="Rezept nicht gefunden")
-    if int(rezept.get("is_public") or 0) != 1 and rezept.get("owner_name") != current_user:
+    if int(rezept.get("is_public") or 0) != 1 and not can_manage_recipe(current_user, rezept.get("owner_name")):
         raise HTTPException(status_code=403, detail="Dieses Rezept ist privat")
     serialized = serialize_recipe(row)
     serialized["favorited"] = int(serialized.get("id") or 0) in favorite_ids
@@ -884,7 +888,7 @@ async def update_rezept(rezept_id: int, request: Request) -> Dict[str, Any]:
     if existing is None:
         conn.close()
         raise HTTPException(status_code=404, detail="Rezept nicht gefunden")
-    if existing["owner_name"] != owner_name:
+    if not can_manage_recipe(owner_name, existing["owner_name"]):
         conn.close()
         raise HTTPException(status_code=403, detail="Du kannst nur eigene Rezepte bearbeiten")
 
@@ -923,7 +927,7 @@ def delete_rezept(rezept_id: int, request: Request) -> Dict[str, Any]:
     if existing is None:
         conn.close()
         raise HTTPException(status_code=404, detail="Rezept nicht gefunden")
-    if existing["owner_name"] != owner_name and not is_root_user(owner_name):
+    if not can_manage_recipe(owner_name, existing["owner_name"]):
         conn.close()
         raise HTTPException(status_code=403, detail="Du kannst nur eigene Rezepte löschen")
 
@@ -964,7 +968,7 @@ async def update_rezept_visibility(rezept_id: int, request: Request) -> Dict[str
     if existing is None:
         conn.close()
         raise HTTPException(status_code=404, detail="Rezept nicht gefunden")
-    if existing["owner_name"] != owner_name:
+    if not can_manage_recipe(owner_name, existing["owner_name"]):
         conn.close()
         raise HTTPException(status_code=403, detail="Du kannst nur eigene Rezepte veröffentlichen")
 
